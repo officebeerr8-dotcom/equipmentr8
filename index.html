@@ -956,15 +956,15 @@ async function loadDashboard() {
 }
 
 // ==================== PAGE ====================
-function showPage(id) {
+async function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   document.getElementById('tab-' + id).classList.add('active');
   if (id === 'dashboard') loadDashboard();
   if (id === 'stock-report') renderStockReport();
-  if (id === 'receive-report') { buildMonthOptions('receiveReportMonth', allReceiveLines); renderReceiveReport(); }
-  if (id === 'issue-report') { buildMonthOptions('issueReportMonth', allIssueLines); renderIssueReport(); }
+  if (id === 'receive-report') { await buildMonthOptions('receiveReportMonth', allReceiveLines); await renderReceiveReport(); }
+  if (id === 'issue-report') { await buildMonthOptions('issueReportMonth', allIssueLines); await renderIssueReport(); }
 }
 
 // ==================== MODAL ====================
@@ -1167,8 +1167,10 @@ async function loadReceiveDocs() {
   let query = sb.from('receive_docs').select('*').order('date', { ascending: false });
   if (month) {
     const start = month + '-01';
-    const end = month + '-31';
-    query = query.gte('date', start).lte('date', end);
+    const next = new Date(start);
+    next.setMonth(next.getMonth() + 1);
+    const end = next.toISOString().slice(0,10);
+    query = query.gte('date', start).lt('date', end);
   }
   const { data, error } = await query;
   if (error) { toast('โหลดรายการรับเข้าไม่ได้', 'error'); return; }
@@ -1343,8 +1345,10 @@ async function loadIssueDocs() {
   let query = sb.from('issue_docs').select('*').order('date', { ascending: false });
   if (month) {
     const start = month + '-01';
-    const end = month + '-31';
-    query = query.gte('date', start).lte('date', end);
+    const next = new Date(start);
+    next.setMonth(next.getMonth() + 1);
+    const end = next.toISOString().slice(0,10);
+    query = query.gte('date', start).lt('date', end);
   }
   const { data, error } = await query;
   if (error) { toast('โหลดรายการเบิก-จ่ายไม่ได้', 'error'); return; }
