@@ -6,133 +6,193 @@
 <title>Equipment Inventory</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&display=swap');
 
 :root{
-  --bg:#fafafa;
-  --surface:#fff;
-  --border:#dbdbdb;
-  --text:#222;
-  --text2:#666;
-  --blue:#0095f6;
-  --danger:#ed4956;
-  --success:#1ca34a;
+  --bg:#fafafa; --surface:#fff; --border:#dbdbdb;
+  --text:#222; --text2:#666;
+  --blue:#0095f6; --danger:#ed4956; --success:#1ca34a;
 }
 
 *{box-sizing:border-box;font-family:'Noto Sans Thai',sans-serif}
 body{margin:0;background:var(--bg);color:var(--text)}
 
-.page{display:none;padding-bottom:80px}
+header{
+  position:sticky;top:0;z-index:10;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;
+}
+
+nav button{
+  flex:1;border:none;background:none;
+  padding:10px 4px;font-size:11px;
+  color:var(--text2);
+}
+nav button.active{color:var(--blue);font-weight:600}
+
+.page{display:none;padding:12px;padding-bottom:80px}
 .page.active{display:block}
 
-/* ===== Cards / Tables ===== */
+h3{margin:4px 0 12px}
+
+input.search{
+  width:100%;padding:8px;border:1px solid var(--border);
+  border-radius:6px;margin-bottom:10px
+}
+
 table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid var(--border);font-size:13px}
-th{background:#f0f0f0;font-size:11px;color:var(--text2)}
+th,td{padding:9px;border-bottom:1px solid var(--border);font-size:13px}
+th{background:#f0f0f0;color:var(--text2);font-size:11px}
+
 .empty{text-align:center;padding:30px;color:var(--text2)}
 
-.photo-placeholder{
-  width:44px;height:44px;border:1px dashed var(--border);
-  display:flex;align-items:center;justify-content:center;
-  border-radius:6px;color:#aaa
-}
-
-/* ===== Image ===== */
-.img-thumb{
-  width:80px;margin:auto;text-align:center
-}
+.img-thumb{width:60px;margin:auto;cursor:pointer}
 .img-thumb img{
-  width:100%;border-radius:6px;border:1px solid var(--border);
+  width:100%;border-radius:6px;border:1px solid var(--border)
 }
 
-/* ===== Fullscreen Image ===== */
-#imageViewModal{
+.photo-placeholder{
+  width:44px;height:44px;
+  border:1px dashed var(--border);
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:#aaa
+}
+
+/* Fullscreen image */
+#imageViewer{
   position:fixed;inset:0;background:rgba(0,0,0,.85);
-  display:none;z-index:999
+  display:none;z-index:100;
+  align-items:center;justify-content:center;
 }
-#imageViewModal.open{display:flex;align-items:center;justify-content:center}
-#imageViewModal img{
-  max-width:100%;max-height:100%;object-fit:contain
-}
-
-/* ===== Mobile-first ===== */
-@media(max-width:480px){
-  td{font-size:12px}
-}
+#imageViewer.open{display:flex}
+#imageViewer img{max-width:100%;max-height:100%;object-fit:contain}
 </style>
 </head>
 
 <body>
 
-<!-- ===== IMAGE VIEWER ===== -->
-<div id="imageViewModal" onclick="this.classList.remove('open')">
-  <img id="imageViewImg">
+<header>
+  <strong>📦 Equipment Inventory</strong>
+  <span style="font-size:12px;color:var(--text2)">Mobile‑first</span>
+</header>
+
+<!-- Image Viewer -->
+<div id="imageViewer" onclick="this.classList.remove('open')">
+  <img id="imageViewerImg">
 </div>
 
-<div class="page active" id="page-receive">
-<h3 style="padding:10px">📥 รายการรับเข้า</h3>
-<input id="receiveSearch" placeholder="🔍 ค้นหาเลขที่ / วัสดุ" oninput="renderReceiveDocs()"
- style="width:95%;margin:10px;padding:8px">
-
-<table>
-<thead>
-<tr>
-<th>เลขที่</th>
-<th>วันที่</th>
-<th>รายการ</th>
-<th>รูป</th>
-</tr>
-</thead>
-<tbody id="receiveTableBody"></tbody>
-</table>
+<!-- DASHBOARD -->
+<div class="page active" id="dashboard">
+  <h3>📊 ภาพรวม</h3>
+  <div>เลือกเมนูด้านล่างเพื่อใช้งาน</div>
 </div>
 
-<div class="page" id="page-issue">
-<h3 style="padding:10px">📤 รายการจ่ายออก</h3>
-<input id="issueSearch" placeholder="🔍 ค้นหาเลขที่ / วัสดุ" oninput="renderIssueDocs()"
- style="width:95%;margin:10px;padding:8px">
-
-<table>
-<thead>
-<tr>
-<th>เลขที่</th>
-<th>วันที่</th>
-<th>ผู้เบิก</th>
-<th>รายการ</th>
-<th>รูป</th>
-</tr>
-</thead>
-<tbody id="issueTableBody"></tbody>
-</table>
+<!-- RECEIVE -->
+<div class="page" id="receive">
+  <h3>📥 รายการรับเข้า</h3>
+  <input class="search" id="receiveSearch" placeholder="🔍 เลขที่ / วัสดุ"
+         oninput="renderReceiveDocs()">
+  <table>
+    <thead>
+      <tr><th>เลขที่</th><th>วันที่</th><th>รายการ</th><th>รูป</th></tr>
+    </thead>
+    <tbody id="receiveTable"></tbody>
+  </table>
 </div>
+
+<!-- ISSUE -->
+<div class="page" id="issue">
+  <h3>📤 รายการจ่ายออก</h3>
+  <input class="search" id="issueSearch" placeholder="🔍 เลขที่ / วัสดุ"
+         oninput="renderIssueDocs()">
+  <table>
+    <thead>
+      <tr><th>เลขที่</th><th>วันที่</th><th>ผู้เบิก</th><th>รายการ</th><th>รูป</th></tr>
+    </thead>
+    <tbody id="issueTable"></tbody>
+  </table>
+</div>
+
+<!-- STOCK -->
+<div class="page" id="stock">
+  <h3>📊 คงเหลือวัสดุ</h3>
+  <input class="search" id="stockSearch" placeholder="🔍 รหัส / ชื่อวัสดุ"
+         oninput="renderStock()">
+  <table>
+    <thead>
+      <tr><th>รูป</th><th>รหัส</th><th>ชื่อ</th><th>คงเหลือ</th><th>สถานะ</th></tr>
+    </thead>
+    <tbody id="stockTable"></tbody>
+  </table>
+</div>
+
+<!-- NAV -->
+<nav>
+  <button class="active" onclick="showPage('dashboard')">ภาพรวม</button>
+  <button onclick="showPage('receive')">รับเข้า</button>
+  <button onclick="showPage('issue')">จ่ายออก</button>
+  <button onclick="showPage('stock')">คงเหลือ</button>
+</nav>
 
 <script>
-/* ===== Supabase ===== */
-const sb = supabase.createClient(
-  'https://zljfwhnimgjghsthcxjn.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'
-);
+/* ===== CONFIG ===== */
+const SUPABASE_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ===== State ===== */
-let materials=[], stockMap={};
-let receiveDocs=[], receiveLineItems=[];
-let issueDocs=[], issueLineItems=[];
+/* ===== STATE ===== */
+let materials = [];
+let stockMap = {};
+let receiveDocs = [], receiveLines = [];
+let issueDocs = [], issueLines = [];
 
-/* ===== Init ===== */
+/* ===== INIT ===== */
 init();
 async function init(){
   await loadMaterials();
+  await loadStock();
   await loadReceiveDocs();
   await loadIssueDocs();
 }
 
-/* ===== Load ===== */
+/* ===== MENU ===== */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  [...document.querySelectorAll('nav button')].find(b=>b.textContent.includes(id))?.classList.add('active');
+  if(id==='stock') loadStock();
+}
+
+/* ===== IMAGE ===== */
+function viewImage(url){
+  imageViewerImg.src=url;
+  imageViewer.classList.add('open');
+}
+
+/* ===== LOAD DATA ===== */
 async function loadMaterials(){
   const {data}=await sb.from('materials').select('*');
   materials=data||[];
+}
+
+async function loadStock(){
+  const {data}=await sb.from('material_stock').select('material_id,balance');
+  stockMap={};
+  (data||[]).forEach(s=>stockMap[s.material_id]=s.balance);
+  renderStock();
 }
 
 async function loadReceiveDocs(){
@@ -141,7 +201,7 @@ async function loadReceiveDocs(){
   if(receiveDocs.length){
     const ids=receiveDocs.map(d=>d.id);
     const {data:lines}=await sb.from('receive_lines').select('*').in('doc_id',ids);
-    receiveLineItems=lines||[];
+    receiveLines=lines||[];
   }
   renderReceiveDocs();
 }
@@ -152,31 +212,30 @@ async function loadIssueDocs(){
   if(issueDocs.length){
     const ids=issueDocs.map(d=>d.id);
     const {data:lines}=await sb.from('issue_lines').select('*').in('doc_id',ids);
-    issueLineItems=lines||[];
+    issueLines=lines||[];
   }
   renderIssueDocs();
 }
 
-/* ===== Render Receive ===== */
+/* ===== RENDER RECEIVE ===== */
 function renderReceiveDocs(){
   const q=(receiveSearch.value||'').toLowerCase();
-  receiveTableBody.innerHTML='';
+  receiveTable.innerHTML='';
   const rows=receiveDocs.filter(d=>{
-    const lines=receiveLineItems.filter(l=>l.doc_id===d.id);
-    const txt=[d.doc_number,...lines.map(l=>{
-      const m=materials.find(x=>x.id===l.material_id);
-      return m?.name;
+    const lines=receiveLines.filter(l=>l.doc_id===d.id);
+    const t=[d.doc_number,...lines.map(l=>{
+      const m=materials.find(x=>x.id===l.material_id);return m?.name;
     })].join(' ').toLowerCase();
-    return txt.includes(q);
+    return t.includes(q);
   });
 
   if(!rows.length){
-    receiveTableBody.innerHTML=`<tr><td colspan="4"><div class="empty">ไม่พบข้อมูล</div></td></tr>`;
+    receiveTable.innerHTML=`<tr><td colspan="4" class="empty">ไม่พบข้อมูล</td></tr>`;
     return;
   }
 
-  receiveTableBody.innerHTML=rows.map(d=>{
-    const lines=receiveLineItems.filter(l=>l.doc_id===d.id);
+  receiveTable.innerHTML=rows.map(d=>{
+    const lines=receiveLines.filter(l=>l.doc_id===d.id);
     const m=materials.find(x=>x.id===lines[0]?.material_id);
     const img=m?.images?.[0];
     const summary=lines.map(l=>{
@@ -184,37 +243,34 @@ function renderReceiveDocs(){
       return `${mm?.name} x${l.qty}`;
     }).join(', ');
     return `
-    <tr>
-      <td>${d.doc_number}</td>
-      <td>${d.date}</td>
-      <td>${summary}</td>
-      <td>${img?
-        `<div class="img-thumb" onclick="viewImage('${img}')"><imgaceholder">📦</div>`}
-      </td>
-    </tr>`;
+      <tr>
+        <td>${d.doc_number}</td>
+        <td>${d.date}</td>
+        <td>${summary}</td>
+        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><img src="${ceholder">📦</div>`}</td>
+      </tr>`;
   }).join('');
 }
 
-/* ===== Render Issue ===== */
+/* ===== RENDER ISSUE ===== */
 function renderIssueDocs(){
   const q=(issueSearch.value||'').toLowerCase();
-  issueTableBody.innerHTML='';
+  issueTable.innerHTML='';
   const rows=issueDocs.filter(d=>{
-    const lines=issueLineItems.filter(l=>l.doc_id===d.id);
-    const txt=[d.doc_number,d.requester,...lines.map(l=>{
-      const m=materials.find(x=>x.id===l.material_id);
-      return m?.name;
+    const lines=issueLines.filter(l=>l.doc_id===d.id);
+    const t=[d.doc_number,d.requester,...lines.map(l=>{
+      const m=materials.find(x=>x.id===l.material_id);return m?.name;
     })].join(' ').toLowerCase();
-    return txt.includes(q);
+    return t.includes(q);
   });
 
   if(!rows.length){
-    issueTableBody.innerHTML=`<tr><td colspan="5"><div class="empty">ไม่พบข้อมูล</div></td></tr>`;
+    issueTable.innerHTML=`<tr><td colspan="5" class="empty">ไม่พบข้อมูล</td></tr>`;
     return;
   }
 
-  issueTableBody.innerHTML=rows.map(d=>{
-    const lines=issueLineItems.filter(l=>l.doc_id===d.id);
+  issueTable.innerHTML=rows.map(d=>{
+    const lines=issueLines.filter(l=>l.doc_id===d.id);
     const m=materials.find(x=>x.id===lines[0]?.material_id);
     const img=m?.images?.[0];
     const summary=lines.map(l=>{
@@ -222,23 +278,42 @@ function renderIssueDocs(){
       return `${mm?.name} x${l.qty}`;
     }).join(', ');
     return `
-    <tr>
-      <td>${d.doc_number}</td>
-      <td>${d.date}</td>
-      <td>${d.requester}</td>
-      <td>${summary}</td>
-      <td>${img?
-        `<div class="img-thumb" onclick="viewImage('${img}')">${img}</div>`:
-        `<div class="photo-placeholder">📦</div>`}
-      </td>
-    </tr>`;
+      <tr>
+        <td>${d.doc_number}</td>
+        <td>${d.date}</td>
+        <td>${d.requester}</td>
+        <td>${summary}</td>
+        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><img src="${img}div class="photo-placeholder">📦</div>`}</td>
+      </tr>`;
   }).join('');
 }
 
-/* ===== Image Viewer ===== */
-function viewImage(url){
-  imageViewImg.src=url;
-  imageViewModal.classList.add('open');
+/* ===== RENDER STOCK ===== */
+function renderStock(){
+  const q=(stockSearch.value||'').toLowerCase();
+  stockTable.innerHTML='';
+  const rows=materials.filter(m=>(`${m.code} ${m.name}`).toLowerCase().includes(q));
+
+  if(!rows.length){
+    stockTable.innerHTML=`<tr><td colspan="5" class="empty">ไม่พบข้อมูล</td></tr>`;
+    return;
+  }
+
+  stockTable.innerHTML=rows.map(m=>{
+    const qty=stockMap[m.id]||0;
+    let status='✅ ปกติ', color='var(--success)';
+    if(qty<=0){status='❌ หมด';color='var(--danger)'}
+    else if(qty<m.min_qty){status='⚠️ ต่ำ';color='#ff9800'}
+    const img=m.images?.[0];
+    return `
+      <tr>
+        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><{img}</div>`:`<div class="photo-placeholder">📦</div>`}</td>
+        <td>${m.code}</td>
+        <td>${m.name}</td>
+        <td><strong>${qty} ${m.unit}</strong></td>
+        <td style="color:${color}">${status}</td>
+      </tr>`;
+  }).join('');
 }
 </script>
 
