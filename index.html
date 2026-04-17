@@ -702,7 +702,7 @@
     <div id="receiveItems"></div>
     <button class="btn btn-secondary btn-sm" onclick="addReceiveItem()" style="margin-top:6px; width:100%;">+ เพิ่มรายการ</button>
     <div class="form-group" style="margin-top:14px;">
-      <label>รูปภาพเอกสาร</label>
+      <label>รูปภาพเอกสาร (ปิดใช้งาน)</label>
       <div class="img-upload-wrap">
         <input type="file" accept="image/*" multiple onchange="handleImgUpload(this,'receiveImgPreview','receiveImgFiles')">
         <div style="color: var(--text2); font-size: 13px;">📷 แตะเพื่อเลือกรูปภาพ</div>
@@ -753,7 +753,7 @@
     <div id="issueItems"></div>
     <button class="btn btn-secondary btn-sm" onclick="addIssueItem()" style="margin-top:6px; width:100%;">+ เพิ่มรายการ</button>
     <div class="form-group" style="margin-top:14px;">
-      <label>รูปภาพเอกสาร</label>
+      <label>รูปภาพเอกสาร (ปิดใช้งาน)</label>
       <div class="img-upload-wrap">
         <input type="file" accept="image/*" multiple onchange="handleImgUpload(this,'issueImgPreview','issueImgFiles')">
         <div style="color: var(--text2); font-size: 13px;">📷 แตะเพื่อเลือกรูปภาพ</div>
@@ -807,8 +807,7 @@ async function init() {
     document.getElementById('receiveMonth').value = ym;
     document.getElementById('issueMonth').value = ym;
     await Promise.all([loadMaterials(), loadReceiveDocs(), loadIssueDocs()]);
-    await loadStockFast();
- await computeStock();
+    await computeStock();
     renderMaterials();
     renderReceiveDocs();
     renderIssueDocs();
@@ -1125,8 +1124,7 @@ async function saveMaterial() {
   toast(editId ? 'แก้ไขสำเร็จ' : 'เพิ่มวัสดุอุปกรณ์สำเร็จ');
   closeModal('materialModal');
   await loadMaterials();
-  await loadStockFast();
- await computeStock();
+  await computeStock();
   renderMaterials();
 }
 
@@ -1135,8 +1133,7 @@ async function deleteMaterial(id) {
   const { error } = await sb.from('materials').delete().eq('id', id);
   if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
   toast('ลบสำเร็จ');
-  await loadMaterials(); await loadStockFast();
- await computeStock(); renderMaterials();
+  await loadMaterials(); await computeStock(); renderMaterials();
 }
 
 // ==================== STOCK COMPUTE ====================
@@ -1189,7 +1186,6 @@ async function loadReceiveDocs() {
 }
 
 function renderReceiveDocs() {
- const q = (document.getElementById("receiveSearch")?.value || "").toLowerCase();
   const tbody = document.getElementById('receiveTableBody');
   if (!receiveDocs.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📥</div><div class="empty-text">ไม่มีรายการรับเข้า</div></div></td></tr>';
@@ -1201,9 +1197,7 @@ function renderReceiveDocs() {
       const mat = materials.find(m => m.id === l.material_id);
       return `${mat?.name || '-'} x${l.qty}`;
     }).join(', ');
-    const firstMat = materials.find(m => m.id === lines[0]?.material_id);
- const imgUrl = firstMat?.images?.[0];
- const imgs = imgUrl ? [imgUrl] : [] || [];
+    const imgs = doc.images || [];
     const imgBtn = imgs.length ? `<button class="btn btn-secondary btn-sm" onclick="viewImages(${JSON.stringify(imgs).replace(/"/g,'&quot;')})">🖼 ${imgs.length} รูป</button>` : '-';
     const editSvgR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
     const delSvgR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
@@ -1333,8 +1327,7 @@ async function saveReceive() {
   if (le) { toast('บันทึกรายการไม่สำเร็จ: ' + le.message, 'error'); return; }
   toast('บันทึกรายการรับเข้าสำเร็จ');
   closeModal('receiveModal');
-  await loadReceiveDocs(); await loadStockFast();
- await computeStock(); renderMaterials();
+  await loadReceiveDocs(); await computeStock(); renderMaterials();
 }
 
 async function deleteReceiveDoc(id) {
@@ -1343,8 +1336,7 @@ async function deleteReceiveDoc(id) {
   const { error } = await sb.from('receive_docs').delete().eq('id', id);
   if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
   toast('ลบสำเร็จ');
-  await loadReceiveDocs(); await loadStockFast();
- await computeStock(); renderMaterials();
+  await loadReceiveDocs(); await computeStock(); renderMaterials();
 }
 
 // ==================== ISSUE ====================
@@ -1370,7 +1362,6 @@ async function loadIssueDocs() {
 }
 
 function renderIssueDocs() {
- const q = (document.getElementById("issueSearch")?.value || "").toLowerCase();
   const tbody = document.getElementById('issueTableBody');
   if (!issueDocs.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">📤</div><div class="empty-text">ไม่มีรายการเบิก-จ่าย</div></div></td></tr>';
@@ -1382,9 +1373,7 @@ function renderIssueDocs() {
       const mat = materials.find(m => m.id === l.material_id);
       return `${mat?.name || '-'} x${l.qty}`;
     }).join(', ');
-    const firstMat = materials.find(m => m.id === lines[0]?.material_id);
- const imgUrl = firstMat?.images?.[0];
- const imgs = imgUrl ? [imgUrl] : [] || [];
+    const imgs = doc.images || [];
     const imgBtn = imgs.length ? `<button class="btn btn-secondary btn-sm" onclick="viewImages(${JSON.stringify(imgs).replace(/"/g,'&quot;')})">🖼 ${imgs.length} รูป</button>` : '-';
     const editSvgI = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
     const delSvgI = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
@@ -1514,8 +1503,7 @@ async function saveIssue() {
   if (le) { toast('บันทึกรายการไม่สำเร็จ: ' + le.message, 'error'); return; }
   toast('บันทึกรายการเบิก-จ่ายสำเร็จ');
   closeModal('issueModal');
-  await loadIssueDocs(); await loadStockFast();
- await computeStock(); renderMaterials();
+  await loadIssueDocs(); await computeStock(); renderMaterials();
 }
 
 async function deleteIssueDoc(id) {
@@ -1524,8 +1512,7 @@ async function deleteIssueDoc(id) {
   const { error } = await sb.from('issue_docs').delete().eq('id', id);
   if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
   toast('ลบสำเร็จ');
-  await loadIssueDocs(); await loadStockFast();
- await computeStock(); renderMaterials();
+  await loadIssueDocs(); await computeStock(); renderMaterials();
 }
 
 // ==================== STOCK REPORT ====================
@@ -1776,8 +1763,19 @@ init();
 </html>
 
 <script>
-async function loadStockFast(){
- const {data,error}=await sb.from('material_stock').select('material_id,balance');
- if(!error){ stockMap={}; data.forEach(r=>stockMap[r.material_id]=r.balance); }
+// PATCH: show large material preview instead of document images
+function showMaterialPreview(materialId){
+  const wrap=document.getElementById('selectedMaterialPreview');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  const m=materials.find(x=>x.id===materialId);
+  if(!m||!m.images||!m.images.length){wrap.innerHTML='<div class="photo-placeholder">ไม่มีรูปวัสดุ</div>';return;}
+  wrap.innerHTML=m.images.map(url=>`
+    <div style="width:160px;cursor:pointer" onclick="viewImages(['${url}'])">
+      <img src="${url}" style="width:100%;height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text2);text-align:center;margin-top:6px">
+        <strong>${m.code}</strong><br>${m.name}<br>คงเหลือ ${stockMap[m.id]??0} ${m.unit}
+      </div>
+    </div>`).join('');
 }
 </script>
