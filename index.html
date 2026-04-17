@@ -1,132 +1,1759 @@
-```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>Equipment</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipment</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --ig-blue: #0095f6;
+    --ig-blue-dark: #0074cc;
+    --ig-red: #ed4956;
+    --ig-green: #1ca34a;
+    --ig-yellow: #ffd600;
+    --bg: #fafafa;
+    --surface: #fff;
+    --border: #dbdbdb;
+    --border-light: #efefef;
+    --text: #0a0a0a;
+    --text2: #737373;
+    --text3: #a8a8a8;
+    --radius: 8px;
+    --font: -apple-system,'Noto Sans Thai',BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== INSTAGRAM TOP HEADER ===== */
+  .top-header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    display: flex; align-items: center; gap: 0;
+    height: 44px;
+    max-width: 935px; margin: 0 auto;
+    width: 100%;
+  }
+  /* full-width sticky wrapper */
+  .header-outer {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-size: 22px; font-weight: 400; letter-spacing: -1px;
+    font-family: 'Billabong', 'Dancing Script', cursive;
+    flex: 1;
+    background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-status {
+    font-size: 11px; color: var(--text2);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ig-green); flex-shrink: 0;
+  }
+
+  /* ===== INSTAGRAM BOTTOM NAV ===== */
+  .nav-tabs {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px; padding: 8px 2px 10px;
+    border: none; background: none;
+    font-family: var(--font); font-size: 9px; font-weight: 400;
+    color: var(--text3); cursor: pointer; position: relative;
+    transition: color 0.1s; -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn.active svg { stroke-width: 2.4; }
+  .tab-btn svg { transition: transform 0.1s; }
+  .tab-btn:active svg { transform: scale(0.88); }
+  .tab-icon { display: flex; align-items: center; justify-content: center; }
+
+  /* ===== PAGES ===== */
+  .page {
+    display: none;
+    padding: 0;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    max-width: 935px; margin: 0 auto;
+  }
+  .page.active { display: block; }
+
+  /* ===== INSTAGRAM SECTION HEADER ===== */
+  .ig-section {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 44px; z-index: 50;
+  }
+  .ig-section-title {
+    font-size: 16px; font-weight: 600; color: var(--text);
+  }
+  .ig-section-sub { font-size: 12px; color: var(--text2); }
+
+  /* ===== FILTER PILLS (Instagram Stories style) ===== */
+  .filter-pills {
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+    padding: 10px 16px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .filter-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    flex-shrink: 0; padding: 6px 14px;
+    border-radius: 20px; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); cursor: pointer; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .pill.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .pill-input {
+    flex-shrink: 0; padding: 6px 14px;
+    border-radius: 20px; font-size: 13px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); outline: none;
+    min-width: 160px;
+  }
+  .pill-input:focus { border-color: var(--text3); box-shadow: none; }
+
+  /* ===== INSTAGRAM CARD / POST STYLE ===== */
+  .card {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .card-body { padding: 0 16px 16px; }
+
+  /* ===== FORM ===== */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text2); }
+  input, select, textarea {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px; font-family: var(--font); font-size: 14px;
+    background: var(--surface); color: var(--text);
+    transition: border-color 0.15s; outline: none; width: 100%;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--text3); box-shadow: none; }
+  textarea { resize: vertical; min-height: 68px; }
+
+  /* ===== INSTAGRAM BUTTONS ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 7px 16px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: opacity 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary { background: var(--ig-blue); color: #fff; }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-danger { background: var(--ig-red); color: #fff; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+  .btn-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: none; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text); transition: background 0.1s;
+  }
+  .btn-icon:hover { background: var(--bg); }
+  .btn-icon svg { width: 18px; height: 18px; }
+
+  /* ===== IG TABLE ===== */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  th {
+    text-align: left; padding: 9px 12px;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+    background: var(--bg);
+  }
+  td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border-light);
+    font-size: 13px; vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  /* ===== BADGES ===== */
+  .badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-danger { background: #ffecee; color: var(--ig-red); }
+  .badge-success { background: #e8f8ed; color: #1ca34a; }
+  .badge-warning { background: #fff8e1; color: #b8860b; }
+  .badge-info { background: #e8f3ff; color: var(--ig-blue); }
+
+  /* ===== STORY-STYLE STAT PILLS ===== */
+  .stats-grid {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .stat-card {
+    flex: 1; text-align: center; padding: 14px 8px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-card:last-child { border-right: none; }
+  .stat-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* ===== QTY STEPPER ===== */
+  .qty-stepper {
+    display: flex; align-items: center;
+    border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; width: 110px; height: 34px;
+  }
+  .qty-btn {
+    width: 32px; height: 100%; border: none; background: var(--bg);
+    font-size: 17px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; color: var(--text); flex-shrink: 0;
+    transition: background 0.1s;
+  }
+  .qty-btn:active { background: var(--border); }
+  .qty-input {
+    flex: 1; border: none; border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border); text-align: center;
+    font-size: 13px; font-weight: 600; height: 100%;
+    border-radius: 0; padding: 0; background: var(--surface);
+  }
+  .qty-input:focus { box-shadow: none; border-color: var(--border); }
+
+  /* ===== ITEM ROWS ===== */
+  .item-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 8px; align-items: center; padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .item-row:last-of-type { border-bottom: none; }
+
+  /* ===== IMAGE UPLOAD ===== */
+  .img-upload-wrap {
+    border: 1px dashed var(--border); border-radius: 8px;
+    padding: 18px; text-align: center; cursor: pointer;
+    transition: all 0.15s; position: relative; background: var(--bg);
+  }
+  .img-upload-wrap:hover { border-color: var(--text3); }
+  .img-upload-wrap input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    border: none; box-shadow: none; width: 100%; height: 100%;
+  }
+  .img-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .img-thumb {
+    position: relative; width: 80px; height: 80px;
+    border-radius: 6px; overflow: hidden; border: 1px solid var(--border);
+  }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .img-thumb-remove {
+    position: absolute; top: 3px; right: 3px;
+    background: rgba(0,0,0,0.6); color: #fff; border: none;
+    border-radius: 50%; width: 18px; height: 18px; font-size: 10px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== DOC NUMBER ===== */
+  .doc-number-box {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px;
+    font-size: 12px; font-weight: 600; color: var(--ig-blue);
+    letter-spacing: 0.3px;
+  }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar { display: flex; gap: 8px; padding: 10px 16px; flex-wrap: wrap; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .filter-bar input, .filter-bar select { width: auto; flex: 1; min-width: 130px; max-width: 200px; }
+
+  /* ===== TOAST ===== */
+  .toast-wrap {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; pointer-events: none;
+  }
+  .toast {
+    background: rgba(0,0,0,0.85); color: #fff; border-radius: 20px;
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    animation: igToast 0.2s ease; white-space: nowrap;
+    backdrop-filter: blur(8px);
+  }
+  .toast.error { background: rgba(237,73,86,0.92); }
+  .toast.success { background: rgba(28,163,74,0.92); }
+  @keyframes igToast { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
+
+  /* ===== MODAL — INSTAGRAM SHEET STYLE ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 500; display: none; align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 0; width: 100%; max-width: 600px;
+    max-height: 92vh; overflow-y: auto;
+    animation: slideSheet 0.25s cubic-bezier(.32,1,.22,1);
+  }
+  @keyframes slideSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle {
+    width: 36px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 10px auto 0;
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .close-btn {
+    background: var(--bg); border: none; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text2); font-size: 16px;
+  }
+  .modal-body { padding: 16px; }
+
+  /* ===== EMPTY ===== */
+  .empty { text-align: center; padding: 48px 20px; color: var(--text3); }
+  .empty-icon { margin-bottom: 12px; }
+  .empty-text { font-size: 14px; color: var(--text2); }
+
+  /* ===== LOADING ===== */
+  .loading { text-align: center; padding: 24px; color: var(--text2); font-size: 13px; }
+
+  /* ===== REPORT ===== */
+  .report-section { margin-bottom: 0; border-bottom: 1px solid var(--border); }
+  .report-month-header {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    padding: 10px 16px; background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    position: sticky; top: 44px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ===== PHOTO CELL ===== */
+  .photo-cell img {
+    width: 44px; height: 44px; border-radius: 6px;
+    object-fit: cover; border: 1px solid var(--border-light);
+  }
+  .photo-placeholder {
+    width: 44px; height: 44px; border-radius: 6px;
+    background: var(--bg); border: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3);
+  }
+
+  /* ===== LINK/ACTION TEXT ===== */
+  .ig-link { color: var(--ig-blue); font-weight: 600; font-size: 13px; cursor: pointer; background: none; border: none; padding: 0; }
+  .ig-divider { height: 8px; background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<h2>ระบบวัสดุ</h2>
+<div class="toast-wrap" id="toastWrap"></div>
 
-<label>เดือน (รับเข้า):</label>
-<input type="month" id="receiveMonth">
-<button onclick="loadReceiveDocs()">โหลดรับเข้า</button>
+<!-- TOP HEADER -->
+<div class="header-outer">
+<header class="top-header">
+  <div class="logo">equipment</div>
+  <div class="header-status">
+    <div class="status-dot" id="dbStatusDot"></div>
+    <span id="dbStatusText">กำลังเชื่อมต่อ...</span>
+  </div>
+</header>
+</div>
 
-<br><br>
+<!-- NAV TABS -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showPage('dashboard')" id="tab-dashboard">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
+        <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+      </svg>
+    </span>
+    ภาพรวม
+  </button>
+  <button class="tab-btn" onclick="showPage('materials')" id="tab-materials">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+        <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+      </svg>
+    </span>
+    วัสดุอุปกรณ์
+  </button>
+  <button class="tab-btn" onclick="showPage('receive')" id="tab-receive">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"/><path d="m8 11 4 4 4-4"/>
+        <path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"/>
+      </svg>
+    </span>
+    รับเข้า
+  </button>
+  <button class="tab-btn" onclick="showPage('issue')" id="tab-issue">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21V9"/><path d="m16 13-4-4-4 4"/>
+        <path d="M8 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/>
+      </svg>
+    </span>
+    เบิก-จ่าย
+  </button>
+  <button class="tab-btn" onclick="showPage('stock-report')" id="tab-stock-report">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <path d="M14 14h7v3"/><path d="M14 21h7"/><path d="M17 14v7"/>
+      </svg>
+    </span>
+    คงเหลือ
+  </button>
+  <button class="tab-btn" onclick="showPage('receive-report')" id="tab-receive-report">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+        <path d="m19 9-5 5-4-4-3 3"/>
+      </svg>
+    </span>
+    รายงานรับเข้า
+  </button>
+  <button class="tab-btn" onclick="showPage('issue-report')" id="tab-issue-report">
+    <span class="tab-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+        <path d="m19 15-5-5-4 4-3-3"/>
+      </svg>
+    </span>
+    รายงานเบิก-จ่าย
+  </button>
+</nav>
 
-<label>เดือน (เบิกจ่าย):</label>
-<input type="month" id="issueMonth">
-<button onclick="loadIssueDocs()">โหลดเบิก</button>
+<!-- ==================== PAGE: DASHBOARD ==================== -->
+<div class="page active" id="page-dashboard">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">ภาพรวม</div>
+      <div class="ig-section-sub" id="dashDate"></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      รีเฟรช
+    </button>
+  </div>
+  <div id="dashboardContent">
+    <div class="loading">กำลังโหลด...</div>
+  </div>
+</div>
 
-<pre id="output"></pre>
+<!-- ==================== PAGE: MATERIALS ==================== -->
+<div class="page" id="page-materials">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">วัสดุอุปกรณ์</div>
+      <div class="ig-section-sub">จัดการฐานข้อมูล</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openMaterialModal()">+ เพิ่ม</button>
+  </div>
+  <div class="filter-pills">
+    <input class="pill-input" type="text" id="matSearch" placeholder="🔍  ค้นหารหัส / ชื่อ..." oninput="renderMaterials()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>รูป</th><th>รหัส</th><th>ชื่อ</th><th>หน่วย</th>
+          <th>ขั้นต่ำ</th><th>คงเหลือ</th><th>สถานะ</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="matTableBody">
+        <tr><td colspan="8" class="loading">กำลังโหลด...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== PAGE: RECEIVE ==================== -->
+<div class="page" id="page-receive">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">รับเข้าสต๊อก</div>
+      <div class="ig-section-sub">บันทึกการรับวัสดุอุปกรณ์</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openReceiveModal()">+ สร้าง</button>
+  </div>
+  <div class="filter-pills">
+    <input class="pill-input" type="month" id="receiveMonth" onchange="loadReceiveDocs()" style="min-width:160px;">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>เลขที่</th><th>วันที่</th><th>รายการ</th><th>หมายเหตุ</th><th>รูป</th><th></th></tr>
+      </thead>
+      <tbody id="receiveTableBody">
+        <tr><td colspan="6" class="loading">กำลังโหลด...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== PAGE: ISSUE ==================== -->
+<div class="page" id="page-issue">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">เบิก-จ่าย</div>
+      <div class="ig-section-sub">บันทึกการเบิกจ่ายวัสดุอุปกรณ์</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openIssueModal()">+ สร้าง</button>
+  </div>
+  <div class="filter-pills">
+    <input class="pill-input" type="month" id="issueMonth" onchange="loadIssueDocs()" style="min-width:160px;">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>เลขที่</th><th>วันที่</th><th>ผู้เบิก</th><th>หน่วยงาน</th><th>รายการ</th><th>รูป</th><th></th></tr>
+      </thead>
+      <tbody id="issueTableBody">
+        <tr><td colspan="7" class="loading">กำลังโหลด...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== PAGE: STOCK REPORT ==================== -->
+<div class="page" id="page-stock-report">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">คงเหลือ</div>
+      <div class="ig-section-sub">สรุปปริมาณวัสดุทุกรายการ</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="downloadStockReport()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      ดาวน์โหลด
+    </button>
+  </div>
+  <div class="filter-pills">
+    <select class="pill-input" id="stockFilter" onchange="renderStockReport()" style="min-width:160px;">
+      <option value="all">ทั้งหมด</option>
+      <option value="low">ใกล้หมดเท่านั้น</option>
+      <option value="ok">ปกติเท่านั้น</option>
+    </select>
+    <select class="pill-input" id="stockSort" onchange="renderStockReport()" style="min-width:160px;">
+      <option value="desc">คงเหลือ: มาก → น้อย</option>
+      <option value="asc">คงเหลือ: น้อย → มาก</option>
+    </select>
+  </div>
+  <div id="stockReportContent" class="loading">กำลังโหลด...</div>
+</div>
+
+<!-- ==================== PAGE: RECEIVE REPORT ==================== -->
+<div class="page" id="page-receive-report">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">รายงานรับเข้า</div>
+      <div class="ig-section-sub">สรุปยอดรายวัน แยกเดือน</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="downloadReceiveReport()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      ดาวน์โหลด
+    </button>
+  </div>
+  <div class="filter-pills">
+    <select class="pill-input" id="receiveReportMonth" onchange="renderReceiveReport()" style="min-width:160px;">
+      <option value="all">ทุกเดือน</option>
+    </select>
+  </div>
+  <div id="receiveReportContent" class="loading">กำลังโหลด...</div>
+</div>
+
+<!-- ==================== PAGE: ISSUE REPORT ==================== -->
+<div class="page" id="page-issue-report">
+  <div class="ig-section" style="top:44px;">
+    <div>
+      <div class="ig-section-title">รายงานเบิก-จ่าย</div>
+      <div class="ig-section-sub">สรุปยอดรายวัน แยกเดือน</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="downloadIssueReport()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      ดาวน์โหลด
+    </button>
+  </div>
+  <div class="filter-pills">
+    <select class="pill-input" id="issueReportMonth" onchange="renderIssueReport()" style="min-width:160px;">
+      <option value="all">ทุกเดือน</option>
+    </select>
+  </div>
+  <div id="issueReportContent" class="loading">กำลังโหลด...</div>
+</div>
+
+<!-- ==================== MODAL: MATERIAL ==================== -->
+<div class="modal-overlay" id="materialModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="materialModalTitle">เพิ่มวัสดุอุปกรณ์</div>
+      <button class="close-btn" onclick="closeModal('materialModal')">✕</button>
+    </div>
+    <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>รหัสสินค้า *</label>
+        <input type="text" id="matCode" placeholder="เช่น EQ-001">
+      </div>
+      <div class="form-group">
+        <label>ชื่อวัสดุอุปกรณ์ *</label>
+        <input type="text" id="matName" placeholder="ชื่อวัสดุ">
+      </div>
+      <div class="form-group">
+        <label>หน่วยนับ *</label>
+        <input type="text" id="matUnit" placeholder="เช่น ชิ้น, กล่อง, ม้วน">
+      </div>
+      <div class="form-group">
+        <label>จำนวนขั้นต่ำ (แจ้งเตือน)</label>
+        <input type="number" id="matMinQty" placeholder="0" min="0">
+      </div>
+      <div class="form-group full">
+        <label>รูปภาพ</label>
+        <div class="img-upload-wrap" id="matImgWrap">
+          <input type="file" accept="image/*" multiple onchange="handleImgUpload(this,'matImgPreview','matImgFiles')">
+          <div style="color: var(--text2); font-size: 13px;">📷 แตะเพื่อเลือกรูปภาพ</div>
+        </div>
+        <div class="img-preview" id="matImgPreview"></div>
+      </div>
+    </div>
+    <input type="hidden" id="matEditId">
+    <input type="hidden" id="matExistingImages" value="[]">
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('materialModal')">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveMaterial()">บันทึก</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: RECEIVE ==================== -->
+<div class="modal-overlay" id="receiveModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="receiveModalTitle">สร้างรายการรับเข้า</div>
+        <div class="doc-number-box" id="receiveDocNum" style="margin-top:6px;">RCV-...</div>
+      </div>
+      <button class="close-btn" onclick="closeModal('receiveModal')">✕</button>
+    </div>
+    <div class="modal-body">
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label>วันที่รับเข้า *</label>
+        <input type="date" id="receiveDate">
+      </div>
+      <div class="form-group">
+        <label>หมายเหตุ</label>
+        <input type="text" id="receiveNote" placeholder="หมายเหตุ (ถ้ามี)">
+      </div>
+    </div>
+    <div style="margin-bottom:8px; font-weight:600; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:0.4px;">รายการวัสดุ</div>
+    <div id="receiveItems"></div>
+    <button class="btn btn-secondary btn-sm" onclick="addReceiveItem()" style="margin-top:6px; width:100%;">+ เพิ่มรายการ</button>
+    <div class="form-group" style="margin-top:14px;">
+      <label>รูปภาพเอกสาร</label>
+      <div class="img-upload-wrap">
+        <input type="file" accept="image/*" multiple onchange="handleImgUpload(this,'receiveImgPreview','receiveImgFiles')">
+        <div style="color: var(--text2); font-size: 13px;">📷 แตะเพื่อเลือกรูปภาพ</div>
+      </div>
+      <div class="img-preview" id="receiveImgPreview"></div>
+    </div>
+    <input type="hidden" id="receiveEditId">
+    <input type="hidden" id="receiveExistingImages" value="[]">
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('receiveModal')">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveReceive()">บันทึก</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: ISSUE ==================== -->
+<div class="modal-overlay" id="issueModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="issueModalTitle">สร้างรายการเบิก-จ่าย</div>
+        <div class="doc-number-box" id="issueDocNum" style="margin-top:6px;">ISS-...</div>
+      </div>
+      <button class="close-btn" onclick="closeModal('issueModal')">✕</button>
+    </div>
+    <div class="modal-body">
+    <div class="form-grid-3" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label>วันที่เบิก-จ่าย *</label>
+        <input type="date" id="issueDate">
+      </div>
+      <div class="form-group">
+        <label>ชื่อผู้เบิก *</label>
+        <input type="text" id="issueRequester" placeholder="ชื่อผู้เบิก">
+      </div>
+      <div class="form-group">
+        <label>หน่วยงาน *</label>
+        <input type="text" id="issueDept" placeholder="หน่วยงาน">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>หมายเหตุ</label>
+      <input type="text" id="issueNote" placeholder="หมายเหตุ (ถ้ามี)">
+    </div>
+    <div style="margin-bottom:8px; font-weight:600; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:0.4px;">รายการวัสดุ</div>
+    <div id="issueItems"></div>
+    <button class="btn btn-secondary btn-sm" onclick="addIssueItem()" style="margin-top:6px; width:100%;">+ เพิ่มรายการ</button>
+    <div class="form-group" style="margin-top:14px;">
+      <label>รูปภาพเอกสาร</label>
+      <div class="img-upload-wrap">
+        <input type="file" accept="image/*" multiple onchange="handleImgUpload(this,'issueImgPreview','issueImgFiles')">
+        <div style="color: var(--text2); font-size: 13px;">📷 แตะเพื่อเลือกรูปภาพ</div>
+      </div>
+      <div class="img-preview" id="issueImgPreview"></div>
+    </div>
+    <input type="hidden" id="issueEditId">
+    <input type="hidden" id="issueExistingImages" value="[]">
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('issueModal')">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveIssue()">บันทึก</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: VIEW IMAGES ==================== -->
+<div class="modal-overlay" id="imageViewModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">รูปภาพ</div>
+      <button class="close-btn" onclick="closeModal('imageViewModal')">✕</button>
+    </div>
+    <div class="modal-body" id="imageViewContent" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+  </div>
+</div>
 
 <script>
-const SUPABASE_URL = "https://zljfwhnimgjghsthcxjn.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M";
-
+const SUPABASE_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let receiveDocs = [];
-let receiveLineItems = [];
-let issueDocs = [];
-let issueLineItems = [];
+// State
+let materials = [];
+let stockMap = {}; // materialId -> qty
+let receiveImgFiles = [], issueImgFiles = [], matImgFiles = [];
+let receiveItems = [], issueItems = [];
+let receiveDocs = [], issueDocs = [];
+let receiveLineItems = [], issueLineItems = [];
+let allReceiveLines = [], allIssueLines = [];
 
-function show(data) {
-  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+// ==================== INIT ====================
+async function init() {
+  try {
+    await initDB();
+    setStatus(true);
+    // Default months
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    document.getElementById('receiveMonth').value = ym;
+    document.getElementById('issueMonth').value = ym;
+    await Promise.all([loadMaterials(), loadReceiveDocs(), loadIssueDocs()]);
+    await computeStock();
+    renderMaterials();
+    renderReceiveDocs();
+    renderIssueDocs();
+    await loadDashboard();
+  } catch(e) {
+    setStatus(false);
+    toast('ไม่สามารถเชื่อมต่อ Supabase ได้: ' + e.message, 'error');
+  }
 }
 
-// ================= RECEIVE =================
+async function initDB() {
+  // Test connection
+  const { error } = await sb.from('materials').select('id').limit(1);
+  if (error && error.code !== 'PGRST116') throw error;
+}
+
+function setStatus(ok) {
+  document.getElementById('dbStatusDot').style.background = ok ? 'var(--ig-green)' : 'var(--ig-red)';
+  document.getElementById('dbStatusText').textContent = ok ? 'เชื่อมต่อแล้ว' : 'เชื่อมต่อไม่ได้';
+}
+
+// ==================== TOAST ====================
+function toast(msg, type='success') {
+  const w = document.getElementById('toastWrap');
+  const d = document.createElement('div');
+  d.className = 'toast ' + type;
+  d.textContent = msg;
+  w.appendChild(d);
+  setTimeout(() => d.remove(), 3200);
+}
+
+// ==================== DASHBOARD ====================
+async function loadDashboard() {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dateEl = document.getElementById('dashDate');
+  if (dateEl) dateEl.textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}`;
+
+  const container = document.getElementById('dashboardContent');
+  if (!container) return;
+  container.innerHTML = '<div class="loading">กำลังโหลด...</div>';
+
+  // Stats
+  const totalMaterials = materials.length;
+  const lowStockItems = materials.filter(m => (stockMap[m.id]||0) <= (m.min_qty||0));
+  const totalStock = Object.values(stockMap).reduce((s,v)=>s+(v||0),0);
+
+  // This month docs
+  const { data: rDocsMonth } = await sb.from('receive_docs').select('id').gte('date',ym+'-01').lte('date',ym+'-31');
+  const { data: iDocsMonth } = await sb.from('issue_docs').select('id').gte('date',ym+'-01').lte('date',ym+'-31');
+  const rCount = rDocsMonth?.length || 0;
+  const iCount = iDocsMonth?.length || 0;
+
+  // Low stock items list
+  const lowHTML = lowStockItems.length ? lowStockItems.slice(0,5).map(m => {
+    const qty = stockMap[m.id]||0;
+    const min = m.min_qty||0;
+    const pct = min > 0 ? Math.min(100, Math.round(qty/min*100)) : 100;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border-light);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${m.name}</div>
+          <div style="font-size:11px;color:var(--text2);">${m.code} · ${m.unit}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge badge-danger">⚠ ${qty}/${min}</span>
+        </div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--ig-red);border-radius:2px;transition:width 0.4s;"></div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:24px;"><div class="empty-icon">✅</div><div class="empty-text">ไม่มีรายการที่ใกล้หมด</div></div>';
+
+  // Top 5 most issued this month
+  let topIssued = [];
+  if (iDocsMonth?.length) {
+    const ids = iDocsMonth.map(d=>d.id);
+    const { data: iLines } = await sb.from('issue_lines').select('material_id,qty').in('doc_id',ids);
+    const qtyByMat = {};
+    (iLines||[]).forEach(l => { qtyByMat[l.material_id] = (qtyByMat[l.material_id]||0)+l.qty; });
+    topIssued = Object.entries(qtyByMat).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,qty])=>{
+      const mat = materials.find(m=>m.id===id);
+      return { name: mat?.name||id, code: mat?.code||'-', qty };
+    });
+  }
+  const maxIssued = topIssued[0]?.qty || 1;
+  const topIssuedHTML = topIssued.length ? topIssued.map((t,i)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border-light);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${i+1}. ${t.name}</div>
+          <div style="font-size:11px;color:var(--text2);">${t.code}</div>
+        </div>
+        <span class="badge badge-info">${t.qty} ชิ้น</span>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(t.qty/maxIssued*100)}%;background:var(--ig-blue);border-radius:2px;"></div>
+      </div>
+    </div>`).join('') : '<div class="empty" style="padding:24px;"><div class="empty-icon">📊</div><div class="empty-text">ไม่มีข้อมูลเดือนนี้</div></div>';
+
+  const mn = months[now.getMonth()];
+  container.innerHTML = `
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);display:grid;">
+      <div class="stat-card"><div class="stat-value">${totalMaterials}</div><div class="stat-label">รายการทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:${lowStockItems.length?'var(--ig-red)':'var(--ig-green)'}">${lowStockItems.length}</div><div class="stat-label">ใกล้หมด</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--ig-blue)">${rCount}</div><div class="stat-label">รับเข้า ${mn}</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--text2)">${iCount}</div><div class="stat-label">เบิก-จ่าย ${mn}</div></div>
+    </div>
+    <div class="card" style="margin-top:0;border-bottom:none;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">⚠ วัสดุใกล้หมด</div>
+          <div class="card-sub">รายการที่คงเหลือต่ำกว่าขั้นต่ำ</div>
+        </div>
+        ${lowStockItems.length>5?`<button class="ig-link" onclick="showPage('stock-report');document.getElementById('stockFilter').value='low';renderStockReport()">ดูทั้งหมด ${lowStockItems.length} รายการ</button>`:''}
+      </div>
+      <div class="card-body" style="padding-top:0;">${lowHTML}</div>
+    </div>
+    <div class="ig-divider"></div>
+    <div class="card" style="border-bottom:none;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">📊 เบิก-จ่ายสูงสุด ${mn}</div>
+          <div class="card-sub">5 อันดับที่เบิกมากที่สุดเดือนนี้</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding-top:0;">${topIssuedHTML}</div>
+    </div>
+    <div class="ig-divider"></div>
+    <div class="card" style="border-bottom:none;">
+      <div class="card-header">
+        <div class="card-title">📦 สรุปสต๊อกทั้งหมด</div>
+        <div class="card-sub">คงเหลือรวมทุกรายการ: ${totalStock.toLocaleString()} ชิ้น</div>
+      </div>
+      <div class="card-body" style="padding-top:0;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+          <button class="btn btn-primary btn-sm" onclick="showPage('receive');openReceiveModal()">+ รับเข้าใหม่</button>
+          <button class="btn btn-secondary btn-sm" onclick="showPage('issue');openIssueModal()">+ เบิก-จ่ายใหม่</button>
+          <button class="btn btn-secondary btn-sm" onclick="showPage('materials');openMaterialModal()">+ เพิ่มวัสดุ</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ==================== PAGE ====================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'stock-report') renderStockReport();
+  if (id === 'receive-report') { buildMonthOptions('receiveReportMonth', allReceiveLines); renderReceiveReport(); }
+  if (id === 'issue-report') { buildMonthOptions('issueReportMonth', allIssueLines); renderIssueReport(); }
+}
+
+// ==================== MODAL ====================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ==================== IMAGE UPLOAD ====================
+function handleImgUpload(input, previewId, stateVar) {
+  const files = Array.from(input.files);
+  if (stateVar === 'receiveImgFiles') receiveImgFiles.push(...files);
+  else if (stateVar === 'issueImgFiles') issueImgFiles.push(...files);
+  else if (stateVar === 'matImgFiles') matImgFiles.push(...files);
+  renderImgPreview(previewId, stateVar);
+  input.value = '';
+}
+
+function renderImgPreview(previewId, stateVar) {
+  const arr = stateVar === 'receiveImgFiles' ? receiveImgFiles :
+               stateVar === 'issueImgFiles' ? issueImgFiles : matImgFiles;
+  const container = document.getElementById(previewId);
+  
+  let existingHtml = '';
+  let existingKey = previewId === 'matImgPreview' ? 'matExistingImages' : 
+                    previewId === 'receiveImgPreview' ? 'receiveExistingImages' : 'issueExistingImages';
+  let existing = [];
+  try { existing = JSON.parse(document.getElementById(existingKey).value || '[]'); } catch(e){}
+  
+  existingHtml = existing.map((url,i) => `
+    <div class="img-thumb">
+      <img src="${url}" alt="">
+      <button class="img-thumb-remove" onclick="removeExistingImg('${existingKey}',${i},'${previewId}','${stateVar}')">×</button>
+    </div>
+  `).join('');
+  
+  const newHtml = arr.map((f,i) => {
+    const url = URL.createObjectURL(f);
+    return `<div class="img-thumb">
+      <img src="${url}" alt="">
+      <button class="img-thumb-remove" onclick="removeNewImg('${stateVar}',${i},'${previewId}')">×</button>
+    </div>`;
+  }).join('');
+  container.innerHTML = existingHtml + newHtml;
+}
+
+function removeExistingImg(key, idx, previewId, stateVar) {
+  let arr = JSON.parse(document.getElementById(key).value || '[]');
+  arr.splice(idx, 1);
+  document.getElementById(key).value = JSON.stringify(arr);
+  renderImgPreview(previewId, stateVar);
+}
+
+function removeNewImg(stateVar, idx, previewId) {
+  if (stateVar === 'receiveImgFiles') receiveImgFiles.splice(idx,1);
+  else if (stateVar === 'issueImgFiles') issueImgFiles.splice(idx,1);
+  else matImgFiles.splice(idx,1);
+  renderImgPreview(previewId, stateVar);
+}
+
+async function uploadImages(files, folder) {
+  const urls = [];
+  for (const f of files) {
+    const ext = f.name.split('.').pop();
+    const name = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await sb.storage.from('equipment-images').upload(name, f);
+    if (!error) {
+      const { data } = sb.storage.from('equipment-images').getPublicUrl(name);
+      urls.push(data.publicUrl);
+    }
+  }
+  return urls;
+}
+
+// ==================== MATERIALS ====================
+async function loadMaterials() {
+  const { data, error } = await sb.from('materials').select('*').order('code');
+  if (error) { toast('โหลดข้อมูลวัสดุไม่ได้: ' + error.message, 'error'); return; }
+  materials = data || [];
+}
+
+function renderMaterials() {
+  const q = (document.getElementById('matSearch')?.value || '').toLowerCase();
+  const tbody = document.getElementById('matTableBody');
+  const filtered = materials.filter(m =>
+    m.code?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q)
+  );
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">📦</div><div class="empty-text">ไม่พบข้อมูลวัสดุอุปกรณ์</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(m => {
+    const qty = stockMap[m.id] || 0;
+    const low = qty <= (m.min_qty || 0);
+    const badge = low ? '<span class="badge badge-danger">⚠ ใกล้หมด</span>' : '<span class="badge badge-success">✓ ปกติ</span>';
+    const imgs = m.images || [];
+    const photoCell = imgs.length ? 
+      `<div class="photo-cell" onclick="viewImages(${JSON.stringify(imgs).replace(/"/g,'&quot;')})" style="cursor:pointer;"><img src="${imgs[0]}" alt=""></div>` :
+      `<div class="photo-placeholder">📷</div>`;
+    const editSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    const delSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+    return `<tr>
+      <td>${photoCell}</td>
+      <td><strong>${m.code}</strong></td>
+      <td>${m.name}</td>
+      <td>${m.unit}</td>
+      <td>${m.min_qty || 0}</td>
+      <td><strong>${qty}</strong></td>
+      <td>${badge}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-icon" title="แก้ไข" onclick="editMaterial('${m.id}')">${editSvg}</button>
+          <button class="btn-icon" title="ลบ" onclick="deleteMaterial('${m.id}')" style="color:var(--ig-red);">${delSvg}</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openMaterialModal(mat) {
+  document.getElementById('materialModalTitle').textContent = mat ? 'แก้ไขวัสดุอุปกรณ์' : 'เพิ่มวัสดุอุปกรณ์';
+  document.getElementById('matCode').value = mat?.code || '';
+  document.getElementById('matName').value = mat?.name || '';
+  document.getElementById('matUnit').value = mat?.unit || '';
+  document.getElementById('matMinQty').value = mat?.min_qty || '';
+  document.getElementById('matEditId').value = mat?.id || '';
+  document.getElementById('matExistingImages').value = JSON.stringify(mat?.images || []);
+  matImgFiles = [];
+  renderImgPreview('matImgPreview', 'matImgFiles');
+  openModal('materialModal');
+}
+
+async function editMaterial(id) {
+  const m = materials.find(x => x.id === id);
+  if (m) openMaterialModal(m);
+}
+
+async function saveMaterial() {
+  const code = document.getElementById('matCode').value.trim();
+  const name = document.getElementById('matName').value.trim();
+  const unit = document.getElementById('matUnit').value.trim();
+  const minQty = parseInt(document.getElementById('matMinQty').value) || 0;
+  const editId = document.getElementById('matEditId').value;
+  if (!code || !name || !unit) { toast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'error'); return; }
+  
+  let existingImages = [];
+  try { existingImages = JSON.parse(document.getElementById('matExistingImages').value || '[]'); } catch(e){}
+  const newUrls = await uploadImages(matImgFiles, 'materials');
+  const images = [...existingImages, ...newUrls];
+  
+  const payload = { code, name, unit, min_qty: minQty, images };
+  let error;
+  if (editId) {
+    ({ error } = await sb.from('materials').update(payload).eq('id', editId));
+  } else {
+    ({ error } = await sb.from('materials').insert(payload));
+  }
+  if (error) { toast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
+  toast(editId ? 'แก้ไขสำเร็จ' : 'เพิ่มวัสดุอุปกรณ์สำเร็จ');
+  closeModal('materialModal');
+  await loadMaterials();
+  await computeStock();
+  renderMaterials();
+}
+
+async function deleteMaterial(id) {
+  if (!confirm('ต้องการลบรายการนี้?')) return;
+  const { error } = await sb.from('materials').delete().eq('id', id);
+  if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
+  toast('ลบสำเร็จ');
+  await loadMaterials(); await computeStock(); renderMaterials();
+}
+
+// ==================== STOCK COMPUTE ====================
+async function computeStock() {
+  stockMap = {};
+  materials.forEach(m => { stockMap[m.id] = 0; });
+  
+  const { data: rlines } = await sb.from('receive_lines').select('material_id, qty');
+  (rlines || []).forEach(l => { stockMap[l.material_id] = (stockMap[l.material_id] || 0) + l.qty; });
+  
+  const { data: ilines } = await sb.from('issue_lines').select('material_id, qty');
+  (ilines || []).forEach(l => { stockMap[l.material_id] = (stockMap[l.material_id] || 0) - l.qty; });
+  
+  allReceiveLines = rlines || [];
+  allIssueLines = ilines || [];
+}
+
+// ==================== DOC NUMBER ====================
+async function genDocNum(prefix, table) {
+  const now = new Date();
+  const y = now.getFullYear().toString().slice(2);
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const { count } = await sb.from(table).select('id', { count: 'exact', head: true });
+  const seq = String((count || 0) + 1).padStart(4, '0');
+  return `${prefix}-${y}${m}-${seq}`;
+}
+
+// ==================== RECEIVE ====================
 async function loadReceiveDocs() {
   const month = document.getElementById('receiveMonth').value;
   let query = sb.from('receive_docs').select('*').order('date', { ascending: false });
-
   if (month) {
     const start = month + '-01';
-
-    // ✅ FIX เดือน
-    const [y, m] = month.split('-').map(Number);
-    const nextMonth = new Date(y, m, 1);
-    const end = nextMonth.toISOString().slice(0,10);
-
-    query = query.gte('date', start).lt('date', end);
+    const end = month + '-31';
+    query = query.gte('date', start).lte('date', end);
   }
-
   const { data, error } = await query;
-
-  if (error) {
-    console.error('RECEIVE ERROR:', error);
-    alert(error.message);
-    return;
-  }
-
+  if (error) { toast('โหลดรายการรับเข้าไม่ได้', 'error'); return; }
   receiveDocs = data || [];
-
-  if (receiveDocs.length > 0) {
+  
+  // Load lines
+  if (receiveDocs.length) {
     const ids = receiveDocs.map(d => d.id);
-
-    const { data: lines, error: lineError } = await sb
-      .from('receive_lines')
-      .select('*')
-      .in('doc_id', ids);
-
-    if (lineError) console.error('RECEIVE LINES ERROR:', lineError);
-
+    const { data: lines } = await sb.from('receive_lines').select('*').in('doc_id', ids);
     receiveLineItems = lines || [];
-  } else {
-    receiveLineItems = [];
-  }
-
-  show({ receiveDocs, receiveLineItems });
+  } else { receiveLineItems = []; }
+  renderReceiveDocs();
 }
 
-// ================= ISSUE =================
+function renderReceiveDocs() {
+  const tbody = document.getElementById('receiveTableBody');
+  if (!receiveDocs.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">📥</div><div class="empty-text">ไม่มีรายการรับเข้า</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = receiveDocs.map(doc => {
+    const lines = receiveLineItems.filter(l => l.doc_id === doc.id);
+    const linesSummary = lines.map(l => {
+      const mat = materials.find(m => m.id === l.material_id);
+      return `${mat?.name || '-'} x${l.qty}`;
+    }).join(', ');
+    const imgs = doc.images || [];
+    const imgBtn = imgs.length ? `<button class="btn btn-secondary btn-sm" onclick="viewImages(${JSON.stringify(imgs).replace(/"/g,'&quot;')})">🖼 ${imgs.length} รูป</button>` : '-';
+    const editSvgR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    const delSvgR = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+    return `<tr>
+      <td><strong style="color:var(--ig-blue)">${doc.doc_number}</strong></td>
+      <td>${formatDate(doc.date)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${linesSummary}">${linesSummary || '-'}</td>
+      <td>${doc.note || '-'}</td>
+      <td>${imgBtn}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-icon" onclick="editReceiveDoc('${doc.id}')">${editSvgR}</button>
+          <button class="btn-icon" style="color:var(--ig-red);" onclick="deleteReceiveDoc('${doc.id}')">${delSvgR}</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function openReceiveModal() {
+  receiveItems = [];
+  receiveImgFiles = [];
+  document.getElementById('receiveExistingImages').value = '[]';
+  document.getElementById('receiveEditId').value = '';
+  document.getElementById('receiveModalTitle').textContent = 'สร้างรายการรับเข้า';
+  const now = new Date().toISOString().slice(0,10);
+  document.getElementById('receiveDate').value = now;
+  document.getElementById('receiveNote').value = '';
+  const docNum = await genDocNum('RCV', 'receive_docs');
+  document.getElementById('receiveDocNum').textContent = docNum;
+  document.getElementById('receiveDocNum').dataset.num = docNum;
+  renderReceiveItemRows();
+  renderImgPreview('receiveImgPreview', 'receiveImgFiles');
+  addReceiveItem();
+  openModal('receiveModal');
+}
+
+async function editReceiveDoc(id) {
+  const doc = receiveDocs.find(d => d.id === id);
+  if (!doc) return;
+  receiveImgFiles = [];
+  document.getElementById('receiveExistingImages').value = JSON.stringify(doc.images || []);
+  document.getElementById('receiveEditId').value = id;
+  document.getElementById('receiveModalTitle').textContent = 'แก้ไขรายการรับเข้า';
+  document.getElementById('receiveDate').value = doc.date;
+  document.getElementById('receiveNote').value = doc.note || '';
+  document.getElementById('receiveDocNum').textContent = doc.doc_number;
+  document.getElementById('receiveDocNum').dataset.num = doc.doc_number;
+  const lines = receiveLineItems.filter(l => l.doc_id === id);
+  receiveItems = lines.map(l => ({ material_id: l.material_id, qty: l.qty }));
+  if (!receiveItems.length) receiveItems.push({ material_id: '', qty: 1 });
+  renderReceiveItemRows();
+  renderImgPreview('receiveImgPreview', 'receiveImgFiles');
+  openModal('receiveModal');
+}
+
+function addReceiveItem() {
+  receiveItems.push({ material_id: '', qty: 1 });
+  renderReceiveItemRows();
+}
+
+function renderReceiveItemRows() {
+  const delSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+  const container = document.getElementById('receiveItems');
+  container.innerHTML = receiveItems.map((item, i) => `
+    <div class="item-row" id="ritem-${i}">
+      <div>
+        <select onchange="receiveItems[${i}].material_id=this.value">
+          <option value="">-- เลือกวัสดุ --</option>
+          ${materials.map(m => `<option value="${m.id}" ${item.material_id===m.id?'selected':''}>${m.code} - ${m.name} (${m.unit})</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div class="qty-stepper">
+          <button class="qty-btn" onclick="changeQty('receive',${i},-1)">−</button>
+          <input class="qty-input" type="number" min="1" value="${item.qty}" onchange="receiveItems[${i}].qty=Math.max(1,+this.value)">
+          <button class="qty-btn" onclick="changeQty('receive',${i},1)">+</button>
+        </div>
+      </div>
+      <button class="btn-icon" style="color:var(--ig-red);" onclick="removeReceiveItem(${i})">${delSvg}</button>
+    </div>
+  `).join('');
+}
+
+function changeQty(type, idx, delta) {
+  if (type === 'receive') {
+    receiveItems[idx].qty = Math.max(1, (receiveItems[idx].qty||1) + delta);
+    renderReceiveItemRows();
+  } else {
+    issueItems[idx].qty = Math.max(1, (issueItems[idx].qty||1) + delta);
+    renderIssueItemRows();
+  }
+}
+
+function removeReceiveItem(i) {
+  if (receiveItems.length <= 1) { toast('ต้องมีอย่างน้อย 1 รายการ', 'error'); return; }
+  receiveItems.splice(i, 1);
+  renderReceiveItemRows();
+}
+
+async function saveReceive() {
+  const date = document.getElementById('receiveDate').value;
+  const note = document.getElementById('receiveNote').value;
+  const editId = document.getElementById('receiveEditId').value;
+  const docNum = document.getElementById('receiveDocNum').dataset.num;
+  if (!date) { toast('กรุณาเลือกวันที่', 'error'); return; }
+  const validItems = receiveItems.filter(it => it.material_id);
+  if (!validItems.length) { toast('กรุณาเลือกวัสดุอุปกรณ์อย่างน้อย 1 รายการ', 'error'); return; }
+  
+  let existingImages = [];
+  try { existingImages = JSON.parse(document.getElementById('receiveExistingImages').value || '[]'); } catch(e){}
+  const newUrls = await uploadImages(receiveImgFiles, 'receive');
+  const images = [...existingImages, ...newUrls];
+  
+  let docId = editId;
+  if (editId) {
+    const { error } = await sb.from('receive_docs').update({ date, note, images }).eq('id', editId);
+    if (error) { toast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
+    await sb.from('receive_lines').delete().eq('doc_id', editId);
+  } else {
+    const { data, error } = await sb.from('receive_docs').insert({ doc_number: docNum, date, note, images }).select().single();
+    if (error) { toast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
+    docId = data.id;
+  }
+  const lines = validItems.map(it => ({ doc_id: docId, material_id: it.material_id, qty: it.qty }));
+  const { error: le } = await sb.from('receive_lines').insert(lines);
+  if (le) { toast('บันทึกรายการไม่สำเร็จ: ' + le.message, 'error'); return; }
+  toast('บันทึกรายการรับเข้าสำเร็จ');
+  closeModal('receiveModal');
+  await loadReceiveDocs(); await computeStock(); renderMaterials();
+}
+
+async function deleteReceiveDoc(id) {
+  if (!confirm('ต้องการลบรายการนี้?')) return;
+  await sb.from('receive_lines').delete().eq('doc_id', id);
+  const { error } = await sb.from('receive_docs').delete().eq('id', id);
+  if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
+  toast('ลบสำเร็จ');
+  await loadReceiveDocs(); await computeStock(); renderMaterials();
+}
+
+// ==================== ISSUE ====================
 async function loadIssueDocs() {
   const month = document.getElementById('issueMonth').value;
   let query = sb.from('issue_docs').select('*').order('date', { ascending: false });
-
   if (month) {
     const start = month + '-01';
-
-    // ✅ FIX เดือน
-    const [y, m] = month.split('-').map(Number);
-    const nextMonth = new Date(y, m, 1);
-    const end = nextMonth.toISOString().slice(0,10);
-
-    query = query.gte('date', start).lt('date', end);
+    const end = month + '-31';
+    query = query.gte('date', start).lte('date', end);
   }
-
   const { data, error } = await query;
+  if (error) { toast('โหลดรายการเบิก-จ่ายไม่ได้', 'error'); return; }
+  issueDocs = data || [];
+  if (issueDocs.length) {
+    const ids = issueDocs.map(d => d.id);
+    const { data: lines } = await sb.from('issue_lines').select('*').in('doc_id', ids);
+    issueLineItems = lines || [];
+  } else { issueLineItems = []; }
+  renderIssueDocs();
+}
 
-  if (error) {
-    console.error('ISSUE ERROR:', error);
-    alert(error.message);
+function renderIssueDocs() {
+  const tbody = document.getElementById('issueTableBody');
+  if (!issueDocs.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">📤</div><div class="empty-text">ไม่มีรายการเบิก-จ่าย</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = issueDocs.map(doc => {
+    const lines = issueLineItems.filter(l => l.doc_id === doc.id);
+    const linesSummary = lines.map(l => {
+      const mat = materials.find(m => m.id === l.material_id);
+      return `${mat?.name || '-'} x${l.qty}`;
+    }).join(', ');
+    const imgs = doc.images || [];
+    const imgBtn = imgs.length ? `<button class="btn btn-secondary btn-sm" onclick="viewImages(${JSON.stringify(imgs).replace(/"/g,'&quot;')})">🖼 ${imgs.length} รูป</button>` : '-';
+    const editSvgI = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    const delSvgI = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+    return `<tr>
+      <td><strong style="color:var(--ig-blue)">${doc.doc_number}</strong></td>
+      <td>${formatDate(doc.date)}</td>
+      <td>${doc.requester || '-'}</td>
+      <td>${doc.department || '-'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${linesSummary}">${linesSummary || '-'}</td>
+      <td>${imgBtn}</td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-icon" onclick="editIssueDoc('${doc.id}')">${editSvgI}</button>
+          <button class="btn-icon" style="color:var(--ig-red);" onclick="deleteIssueDoc('${doc.id}')">${delSvgI}</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function openIssueModal() {
+  issueItems = [];
+  issueImgFiles = [];
+  document.getElementById('issueExistingImages').value = '[]';
+  document.getElementById('issueEditId').value = '';
+  document.getElementById('issueModalTitle').textContent = 'สร้างรายการเบิก-จ่าย';
+  const now = new Date().toISOString().slice(0,10);
+  document.getElementById('issueDate').value = now;
+  document.getElementById('issueRequester').value = '';
+  document.getElementById('issueDept').value = '';
+  document.getElementById('issueNote').value = '';
+  const docNum = await genDocNum('ISS', 'issue_docs');
+  document.getElementById('issueDocNum').textContent = docNum;
+  document.getElementById('issueDocNum').dataset.num = docNum;
+  renderIssueItemRows();
+  renderImgPreview('issueImgPreview', 'issueImgFiles');
+  addIssueItem();
+  openModal('issueModal');
+}
+
+async function editIssueDoc(id) {
+  const doc = issueDocs.find(d => d.id === id);
+  if (!doc) return;
+  issueImgFiles = [];
+  document.getElementById('issueExistingImages').value = JSON.stringify(doc.images || []);
+  document.getElementById('issueEditId').value = id;
+  document.getElementById('issueModalTitle').textContent = 'แก้ไขรายการเบิก-จ่าย';
+  document.getElementById('issueDate').value = doc.date;
+  document.getElementById('issueRequester').value = doc.requester || '';
+  document.getElementById('issueDept').value = doc.department || '';
+  document.getElementById('issueNote').value = doc.note || '';
+  document.getElementById('issueDocNum').textContent = doc.doc_number;
+  document.getElementById('issueDocNum').dataset.num = doc.doc_number;
+  const lines = issueLineItems.filter(l => l.doc_id === id);
+  issueItems = lines.map(l => ({ material_id: l.material_id, qty: l.qty }));
+  if (!issueItems.length) issueItems.push({ material_id: '', qty: 1 });
+  renderIssueItemRows();
+  renderImgPreview('issueImgPreview', 'issueImgFiles');
+  openModal('issueModal');
+}
+
+function addIssueItem() {
+  issueItems.push({ material_id: '', qty: 1 });
+  renderIssueItemRows();
+}
+
+function renderIssueItemRows() {
+  const delSvgI2 = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+  const container2 = document.getElementById('issueItems');
+  container2.innerHTML = issueItems.map((item, i) => `
+    <div class="item-row" id="iitem-${i}">
+      <div>
+        <select onchange="issueItems[${i}].material_id=this.value">
+          <option value="">-- เลือกวัสดุ --</option>
+          ${materials.map(m => {
+            const avail = stockMap[m.id] || 0;
+            return `<option value="${m.id}" ${item.material_id===m.id?'selected':''}>${m.code} - ${m.name} (คงเหลือ: ${avail} ${m.unit})</option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div>
+        <div class="qty-stepper">
+          <button class="qty-btn" onclick="changeQty('issue',${i},-1)">−</button>
+          <input class="qty-input" type="number" min="1" value="${item.qty}" onchange="issueItems[${i}].qty=Math.max(1,+this.value)">
+          <button class="qty-btn" onclick="changeQty('issue',${i},1)">+</button>
+        </div>
+      </div>
+      <button class="btn-icon" style="color:var(--ig-red);" onclick="removeIssueItem(${i})">${delSvgI2}</button>
+    </div>
+  `).join('');
+}
+
+function removeIssueItem(i) {
+  if (issueItems.length <= 1) { toast('ต้องมีอย่างน้อย 1 รายการ', 'error'); return; }
+  issueItems.splice(i, 1);
+  renderIssueItemRows();
+}
+
+async function saveIssue() {
+  const date = document.getElementById('issueDate').value;
+  const requester = document.getElementById('issueRequester').value.trim();
+  const dept = document.getElementById('issueDept').value.trim();
+  const note = document.getElementById('issueNote').value;
+  const editId = document.getElementById('issueEditId').value;
+  const docNum = document.getElementById('issueDocNum').dataset.num;
+  if (!date || !requester || !dept) { toast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'error'); return; }
+  const validItems = issueItems.filter(it => it.material_id);
+  if (!validItems.length) { toast('กรุณาเลือกวัสดุอุปกรณ์อย่างน้อย 1 รายการ', 'error'); return; }
+  
+  let existingImages = [];
+  try { existingImages = JSON.parse(document.getElementById('issueExistingImages').value || '[]'); } catch(e){}
+  const newUrls = await uploadImages(issueImgFiles, 'issue');
+  const images = [...existingImages, ...newUrls];
+  
+  let docId = editId;
+  if (editId) {
+    const { error } = await sb.from('issue_docs').update({ date, requester, department: dept, note, images }).eq('id', editId);
+    if (error) { toast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
+    await sb.from('issue_lines').delete().eq('doc_id', editId);
+  } else {
+    const { data, error } = await sb.from('issue_docs').insert({ doc_number: docNum, date, requester, department: dept, note, images }).select().single();
+    if (error) { toast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
+    docId = data.id;
+  }
+  const lines = validItems.map(it => ({ doc_id: docId, material_id: it.material_id, qty: it.qty }));
+  const { error: le } = await sb.from('issue_lines').insert(lines);
+  if (le) { toast('บันทึกรายการไม่สำเร็จ: ' + le.message, 'error'); return; }
+  toast('บันทึกรายการเบิก-จ่ายสำเร็จ');
+  closeModal('issueModal');
+  await loadIssueDocs(); await computeStock(); renderMaterials();
+}
+
+async function deleteIssueDoc(id) {
+  if (!confirm('ต้องการลบรายการนี้?')) return;
+  await sb.from('issue_lines').delete().eq('doc_id', id);
+  const { error } = await sb.from('issue_docs').delete().eq('id', id);
+  if (error) { toast('ลบไม่สำเร็จ', 'error'); return; }
+  toast('ลบสำเร็จ');
+  await loadIssueDocs(); await computeStock(); renderMaterials();
+}
+
+// ==================== STOCK REPORT ====================
+function renderStockReport() {
+  const filter = document.getElementById('stockFilter').value;
+  const sort = document.getElementById('stockSort').value;
+  
+  let rows = materials.map(m => ({ ...m, qty: stockMap[m.id] || 0 }));
+  if (filter === 'low') rows = rows.filter(r => r.qty <= (r.min_qty || 0));
+  if (filter === 'ok') rows = rows.filter(r => r.qty > (r.min_qty || 0));
+  rows.sort((a,b) => sort === 'desc' ? b.qty - a.qty : a.qty - b.qty);
+  
+  const totalItems = rows.length;
+  const lowItems = rows.filter(r => r.qty <= (r.min_qty || 0)).length;
+  
+  const content = document.getElementById('stockReportContent');
+  if (!rows.length) { content.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">ไม่มีข้อมูล</div></div>'; return; }
+  
+  content.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${totalItems}</div><div class="stat-label">รายการทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--ig-red)">${lowItems}</div><div class="stat-label">ใกล้หมด / หมด</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--ig-green)">${totalItems - lowItems}</div><div class="stat-label">สต๊อกปกติ</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>รหัส</th><th>ชื่อวัสดุอุปกรณ์</th><th>หน่วยนับ</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th></tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const low = r.qty <= (r.min_qty || 0);
+            return `<tr>
+              <td>${r.code}</td><td>${r.name}</td><td>${r.unit}</td>
+              <td><strong ${low?'style="color:var(--danger)"':''}>${r.qty}</strong></td>
+              <td>${r.min_qty || 0}</td>
+              <td>${low ? '<span class="badge badge-danger">⚠ ใกล้หมด</span>' : '<span class="badge badge-success">✓ ปกติ</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function downloadStockReport() {
+  const filter = document.getElementById('stockFilter').value;
+  const sort = document.getElementById('stockSort').value;
+  let rows = materials.map(m => ({ ...m, qty: stockMap[m.id] || 0 }));
+  if (filter === 'low') rows = rows.filter(r => r.qty <= (r.min_qty || 0));
+  if (filter === 'ok') rows = rows.filter(r => r.qty > (r.min_qty || 0));
+  rows.sort((a,b) => sort === 'desc' ? b.qty - a.qty : a.qty - b.qty);
+  
+  const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+    'รหัสสินค้า': r.code, 'ชื่อวัสดุอุปกรณ์': r.name, 'หน่วยนับ': r.unit,
+    'คงเหลือ': r.qty, 'ขั้นต่ำ': r.min_qty || 0,
+    'สถานะ': r.qty <= (r.min_qty||0) ? 'ใกล้หมด' : 'ปกติ'
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'คงเหลือ');
+  XLSX.writeFile(wb, `stock-report-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ==================== RECEIVE REPORT ====================
+async function buildMonthOptions(selectId, lines) {
+  const { data: rDocs } = await sb.from('receive_docs').select('date').order('date');
+  const { data: iDocs } = await sb.from('issue_docs').select('date').order('date');
+  const docs = selectId === 'receiveReportMonth' ? (rDocs||[]) : (iDocs||[]);
+  const months = [...new Set(docs.map(d => d.date?.slice(0,7)))].sort().reverse();
+  const sel = document.getElementById(selectId);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">ทุกเดือน</option>' + months.map(m => `<option value="${m}">${formatMonth(m)}</option>`).join('');
+  sel.value = cur || 'all';
+}
+
+async function renderReceiveReport() {
+  const month = document.getElementById('receiveReportMonth').value;
+  let query = sb.from('receive_docs').select('*, receive_lines(material_id, qty)').order('date');
+  if (month !== 'all') {
+    query = query.gte('date', month+'-01').lte('date', month+'-31');
+  }
+  const { data, error } = await query;
+  const container = document.getElementById('receiveReportContent');
+  if (error || !data?.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">ไม่มีข้อมูล</div></div>';
     return;
   }
 
-  issueDocs = data || [];
+  // Group by month then day
+  const byMonth = {};
+  data.forEach(doc => {
+    const m = doc.date?.slice(0,7);
+    const d = doc.date;
+    if (!byMonth[m]) byMonth[m] = {};
+    if (!byMonth[m][d]) byMonth[m][d] = [];
+    byMonth[m][d].push(doc);
+  });
 
-  if (issueDocs.length > 0) {
-    const ids = issueDocs.map(d => d.id);
-
-    const { data: lines, error: lineError } = await sb
-      .from('issue_lines')
-      .select('*')
-      .in('doc_id', ids);
-
-    if (lineError) console.error('ISSUE LINES ERROR:', lineError);
-
-    issueLineItems = lines || [];
-  } else {
-    issueLineItems = [];
-  }
-
-  show({ issueDocs, issueLineItems });
+  let totalQty = 0, totalDocs = 0;
+  let html = '';
+  Object.keys(byMonth).sort().reverse().forEach(m => {
+    const days = byMonth[m];
+    html += `<div class="report-section"><div class="report-month-header">${formatMonth(m)}</div>`;
+    html += `<div class="table-wrap"><table><thead><tr><th>วันที่</th><th>เลขที่</th><th>รายการ</th><th>จำนวนรวม</th></tr></thead><tbody>`;
+    let mTotal = 0, mDocs = 0;
+    Object.keys(days).sort().forEach(d => {
+      days[d].forEach(doc => {
+        const qty = (doc.receive_lines||[]).reduce((s,l) => s+l.qty, 0);
+        const items = (doc.receive_lines||[]).length;
+        mTotal += qty; mDocs++;
+        totalQty += qty; totalDocs++;
+        html += `<tr><td>${formatDate(d)}</td><td>${doc.doc_number}</td><td>${items} รายการ</td><td>${qty}</td></tr>`;
+      });
+    });
+    html += `</tbody><tfoot><tr style="font-weight:600;background:var(--bg)"><td colspan="2">รวม ${formatMonth(m)}</td><td>${mDocs} ฉบับ</td><td>${mTotal}</td></tr></tfoot></table></div></div>`;
+  });
+  
+  container.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${totalDocs}</div><div class="stat-label">เอกสารทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-value">${totalQty}</div><div class="stat-label">จำนวนรับเข้ารวม</div></div>
+    </div>
+    ${html}
+  `;
 }
 
-</script>
+function downloadReceiveReport() {
+  const rows = [];
+  receiveDocs.forEach(doc => {
+    const lines = receiveLineItems.filter(l => l.doc_id === doc.id);
+    lines.forEach(l => {
+      const mat = materials.find(m => m.id === l.material_id);
+      rows.push({
+        'เลขที่เอกสาร': doc.doc_number, 'วันที่': doc.date,
+        'รหัสสินค้า': mat?.code||'-', 'ชื่อวัสดุ': mat?.name||'-',
+        'หน่วย': mat?.unit||'-', 'จำนวน': l.qty, 'หมายเหตุ': doc.note||''
+      });
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รับเข้า');
+  XLSX.writeFile(wb, `receive-report-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
 
+// ==================== ISSUE REPORT ====================
+async function renderIssueReport() {
+  const month = document.getElementById('issueReportMonth').value;
+  let query = sb.from('issue_docs').select('*, issue_lines(material_id, qty)').order('date');
+  if (month !== 'all') {
+    query = query.gte('date', month+'-01').lte('date', month+'-31');
+  }
+  const { data, error } = await query;
+  const container = document.getElementById('issueReportContent');
+  if (error || !data?.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📉</div><div class="empty-text">ไม่มีข้อมูล</div></div>';
+    return;
+  }
+
+  const byMonth = {};
+  data.forEach(doc => {
+    const m = doc.date?.slice(0,7);
+    const d = doc.date;
+    if (!byMonth[m]) byMonth[m] = {};
+    if (!byMonth[m][d]) byMonth[m][d] = [];
+    byMonth[m][d].push(doc);
+  });
+
+  let totalQty = 0, totalDocs = 0;
+  let html = '';
+  Object.keys(byMonth).sort().reverse().forEach(m => {
+    const days = byMonth[m];
+    html += `<div class="report-section"><div class="report-month-header">${formatMonth(m)}</div>`;
+    html += `<div class="table-wrap"><table><thead><tr><th>วันที่</th><th>เลขที่</th><th>ผู้เบิก</th><th>หน่วยงาน</th><th>จำนวนรวม</th></tr></thead><tbody>`;
+    let mTotal = 0, mDocs = 0;
+    Object.keys(days).sort().forEach(d => {
+      days[d].forEach(doc => {
+        const qty = (doc.issue_lines||[]).reduce((s,l) => s+l.qty, 0);
+        mTotal += qty; mDocs++;
+        totalQty += qty; totalDocs++;
+        html += `<tr><td>${formatDate(d)}</td><td>${doc.doc_number}</td><td>${doc.requester}</td><td>${doc.department}</td><td>${qty}</td></tr>`;
+      });
+    });
+    html += `</tbody><tfoot><tr style="font-weight:600;background:var(--bg)"><td colspan="3">รวม ${formatMonth(m)}</td><td>${mDocs} ฉบับ</td><td>${mTotal}</td></tr></tfoot></table></div></div>`;
+  });
+  
+  container.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${totalDocs}</div><div class="stat-label">เอกสารทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-value">${totalQty}</div><div class="stat-label">จำนวนเบิก-จ่ายรวม</div></div>
+    </div>
+    ${html}
+  `;
+}
+
+function downloadIssueReport() {
+  const rows = [];
+  issueDocs.forEach(doc => {
+    const lines = issueLineItems.filter(l => l.doc_id === doc.id);
+    lines.forEach(l => {
+      const mat = materials.find(m => m.id === l.material_id);
+      rows.push({
+        'เลขที่เอกสาร': doc.doc_number, 'วันที่': doc.date,
+        'ผู้เบิก': doc.requester, 'หน่วยงาน': doc.department,
+        'รหัสสินค้า': mat?.code||'-', 'ชื่อวัสดุ': mat?.name||'-',
+        'หน่วย': mat?.unit||'-', 'จำนวน': l.qty, 'หมายเหตุ': doc.note||''
+      });
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'เบิก-จ่าย');
+  XLSX.writeFile(wb, `issue-report-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ==================== IMAGE VIEWER ====================
+function viewImages(imgs) {
+  const arr = typeof imgs === 'string' ? JSON.parse(imgs) : imgs;
+  const container = document.getElementById('imageViewContent');
+  container.innerHTML = arr.map(url => `
+    <div style="width:100%;">
+      <img src="${url}" style="width:100%;border-radius:8px;border:1px solid var(--border);" alt="">
+    </div>
+  `).join('');
+  openModal('imageViewModal');
+}
+
+// ==================== UTILS ====================
+function formatDate(d) {
+  if (!d) return '-';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function formatMonth(ym) {
+  if (!ym) return '-';
+  const [y, m] = ym.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// Start
+init();
+</script>
 </body>
 </html>
-```
