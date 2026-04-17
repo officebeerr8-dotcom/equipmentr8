@@ -2,209 +2,169 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Equipment Inventory</title>
 
-<!-- ✅ Supabase JS -->
+<!-- ✅ Supabase SDK (ต้องเป็น script แบบนี้ เท่านั้น) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&display=swap');
-
-:root{
-  --bg:#fafafa;--surface:#fff;--border:#dbdbdb;
-  --text:#111;--text2:#777;--blue:#0095f6;--red:#ed4956;
+body{margin:0;font-family:system-ui,'Noto Sans Thai',sans-serif;background:#fafafa}
+header{padding:12px;background:#fff;border-bottom:1px solid #ddd}
+nav{display:flex;background:#fff;border-bottom:1px solid #ddd}
+nav button{
+  flex:1;padding:10px;border:none;background:#fff;cursor:pointer
 }
-*{box-sizing:border-box}
-body{
-  margin:0;font-family:'Noto Sans Thai',sans-serif;
-  background:var(--bg);color:var(--text)
+nav button.active{border-bottom:2px solid #0095f6;font-weight:600}
+.page{display:none;padding:12px}
+.page.active{display:block}
+.card{
+  background:#fff;border:1px solid #ddd;border-radius:8px;
+  padding:10px;margin-bottom:10px
 }
-
-/* ---------- Reorder animation ---------- */
-.item-row{
-  padding:10px;
-  margin-bottom:8px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  transition:transform .18s cubic-bezier(.22,.61,.36,1),background .12s;
-  cursor:grab
-}
-.item-row:active{cursor:grabbing}
-.item-row.dragging{opacity:.2}
-.item-row.drag-over{background:#f1f6ff}
-
-.row-preview{
-  margin-top:8px;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap
-}
-.row-preview img{
-  width:120px;height:120px;
-  object-fit:cover;
-  border-radius:6px;
-  border:1px solid var(--border)
-}
-.photo-placeholder{
-  width:120px;height:120px;
-  border:1px dashed var(--border);
-  border-radius:6px;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--text2)
-}
+.status{padding:12px;color:#555}
+.error{color:#c00}
+.success{color:#060}
 </style>
 </head>
 
 <body>
 
-<h3 style="padding:12px;margin:0">📦 สร้างรายการ (ตัวอย่าง)</h3>
-<div style="padding:12px">
-  <button onclick="addReceive()">+ เพิ่มวัสดุ</button>
-  <div id="receiveItems" style="margin-top:12px"></div>
+<header>
+  <strong>📦 Equipment Inventory</strong>
+</header>
+
+<nav>
+  <button id="tab-dashboard" class="active" onclick="showPage('dashboard')">ภาพรวม</button>
+  <button id="tab-receive" onclick="showPage('receive')">รับเข้า</button>
+  <button id="tab-issue" onclick="showPage('issue')">เบิก‑จ่าย</button>
+</nav>
+
+<div id="status" class="status">กำลังโหลด…</div>
+
+<!-- ===== PAGES ===== -->
+<div id="page-dashboard" class="page active">
+  <div class="card">ยินดีต้อนรับสู่ระบบ</div>
 </div>
 
-<!-- ---------- Image Viewer ---------- -->
-<div id="imgView"
-  style="display:none;position:fixed;inset:0;
-         background:rgba(0,0,0,.85);z-index:999"
-  onclick="this.style.display='none'">
-  <img id="imgViewImg"
-       style="max-width:100%;max-height:100%;
-              margin:auto;display:block">
+<div id="page-receive" class="page">
+  <div id="receiveList"></div>
+</div>
+
+<div id="page-issue" class="page">
+  <div id="issueList"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const SUPABASE_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M';
-const sb = supabase.createClient(https://zljfwhnimgjghsthcxjn.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M);
+/* =====================================================
+   SAFE BOOTSTRAP
+   ===================================================== */
 
-/* ================= STATE ================= */
-let materials = [];
-let receiveItems = [];
-
-/* ================= INIT ================= */
-init();
-async function init(){
-  const {data} = await sb.from('materials').select('*').order('code');
-  materials = data || [];
-  addReceive();
-}
-
-/* ================= IMAGE VIEW ================= */
-function viewImage(url){
-  imgViewImg.src = url;
-  imgView.style.display = 'flex';
-}
-
-/* ================= AUTO SCROLL (SAFE) ================= */
-let scrollRAF = null, scrollDir = 0;
-function updateScroll(y){
-  const th = 80, h = innerHeight;
-  scrollDir = y<th ? -1 : y>h-th ? 1 : 0;
-  if(scrollDir && !scrollRAF) rafScroll();
-}
-function rafScroll(){
-  if(!scrollDir) return stopScroll();
-  window.scrollBy(0, scrollDir*8);
-  scrollRAF = requestAnimationFrame(()=>{
-    scrollRAF = null;
-    if(scrollDir) rafScroll();
-  });
-}
-function stopScroll(){
-  scrollDir = 0;
-  if(scrollRAF){cancelAnimationFrame(scrollRAF);scrollRAF=null}
-}
-
-/* ================= DRAG REORDER ================= */
-let dragIndex=null, posMap=new Map();
-
-function recordPos(){
-  posMap.clear();
-  document.querySelectorAll('.item-row')
-    .forEach(r=>posMap.set(r,r.getBoundingClientRect()));
-}
-function dragStart(e,i){
-  dragIndex=i;
-  recordPos();
-  e.target.classList.add('dragging');
-}
-function dragOver(e){
-  e.preventDefault();
-  const r=e.target.closest('.item-row');
-  if(r) r.classList.add('drag-over');
-  updateScroll(e.clientY);
-}
-function dropItem(e,i){
-  e.preventDefault(); stopScroll();
-  if(dragIndex===null) return;
-  const m = receiveItems.splice(dragIndex,1)[0];
-  receiveItems.splice(i,0,m);
-  dragIndex=null;
-  renderReceive();
-  animateFlip();
-}
-function animateFlip(){
-  document.querySelectorAll('.item-row').forEach(r=>{
-    const b=posMap.get(r); if(!b) return;
-    const n=r.getBoundingClientRect();
-    const dx=b.left-n.left, dy=b.top-n.top;
-    if(dx||dy){
-      r.style.transform=`translate(${dx}px,${dy}px)`;
-      r.style.transition='none';
-      requestAnimationFrame(()=>{
-        r.style.transform='';
-        r.style.transition='';
-      });
-    }
-  });
-}
-document.addEventListener('dragend',()=>{
-  stopScroll();
-  document.querySelectorAll('.item-row')
-    .forEach(r=>r.classList.remove('dragging','drag-over'));
+window.addEventListener('load', () => {
+  if (typeof supabase === 'undefined') {
+    status.innerHTML =
+      '<span class="error">❌ โหลด Supabase SDK ไม่ได้</span>';
+    return;
+  }
+  init();
 });
 
-/* ================= UI ================= */
-function addReceive(){
-  receiveItems.push({material_id:''});
-  renderReceive();
-}
-function renderReceive(){
-  const root = document.getElementById('receiveItems');
-  root.innerHTML = receiveItems.map((it,i)=>`
-    <div class="item-row" draggable
-      ondragstart="dragStart(event,${i})"
-      ondragover="dragOver(event)"
-      ondrop="dropItem(event,${i})">
+/* ================= CONFIG ================= */
+const SUPABASE_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M
+';
+let sb;
 
-      <select onchange="receiveItems[${i}].material_id=this.value;renderPreview(${i})">
-        <option value="">-- เลือกวัสดุ --</option>
-        ${materials.map(m=>`
-          <option value="${m.id}" ${it.material_id===m.id?'selected':''}>
-            ${m.code} - ${m.name}
-          </option>`).join('')}
-      </select>
-
-      <div class="row-preview" id="preview-${i}"></div>
-    </div>
-  `).join('');
-
-  receiveItems.forEach((_,i)=>renderPreview(i));
-}
-function renderPreview(i){
-  const it = receiveItems[i];
-  const wrap = document.getElementById('preview-'+i);
-  wrap.innerHTML='';
-  if(!it.material_id){
-    wrap.innerHTML='<div class="photo-placeholder">ยังไม่เลือก</div>';return;
+/* ================= INIT ================= */
+async function init(){
+  try{
+    sb = supabase.createClient(https://zljfwhnimgjghsthcxjn.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M
+);
+  }catch(e){
+    status.innerHTML =
+      '<span class="error">❌ สร้าง Supabase client ไม่สำเร็จ</span>';
+    return;
   }
-  const m = materials.find(x=>x.id===it.material_id);
-  if(!m?.images?.length){
-    wrap.innerHTML='<div class="photo-placeholder">ไม่มีรูป</div>';return;
+
+  status.innerHTML =
+    '<span class="success">✅ โหลด UI สำเร็จ</span>';
+
+  loadReceive();
+  loadIssue();
+}
+
+/* ================= MENU ================= */
+function showPage(id){
+  document.querySelectorAll('.page')
+    .forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button')
+    .forEach(b=>b.classList.remove('active'));
+
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+/* ================= DATA LOAD ================= */
+async function loadReceive(){
+  const el = document.getElementById('receiveList');
+  el.innerHTML = '<div class="status">กำลังโหลดรับเข้า…</div>';
+
+  try{
+    const {data,error} = await sb
+      .from('receive_docs')
+      .select('doc_number,date')
+      .order('date',{ascending:false})
+      .limit(5);
+
+    if(error) throw error;
+
+    if(!data?.length){
+      el.innerHTML = '<div class="status">ไม่มีข้อมูล</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(d=>`
+      <div class="card">
+        <strong>${d.doc_number}</strong><br>
+        วันที่ ${d.date}
+      </div>
+    `).join('');
+  }catch{
+    el.innerHTML =
+      '<div class="status error">⚠️ โหลดรับเข้าไม่ได้ แต่ UI ยังทำงาน</div>';
   }
-  wrap.innerHTML = m.images.map(u=>`
-    <img src="${u}" onclick="viewImage('${u}')
+}
+
+async function loadIssue(){
+  const el = document.getElementById('issueList');
+  el.innerHTML = '<div class="status">กำลังโหลดเบิก‑จ่าย…</div>';
+
+  try{
+    const {data,error} = await sb
+      .from('issue_docs')
+      .select('doc_number,date')
+      .order('date',{ascending:false})
+      .limit(5);
+
+    if(error) throw error;
+
+    if(!data?.length){
+      el.innerHTML = '<div class="status">ไม่มีข้อมูล</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(d=>`
+      <div class="card">
+        <strong>${d.doc_number}</strong><br>
+        วันที่ ${d.date}
+      </div>
+    `).join('');
+  }catch{
+    el.innerHTML =
+      '<div class="status error">⚠️ โหลดเบิก‑จ่ายไม่ได้ แต่ UI ยังทำงาน</div>';
+  }
+}
+</script>
+
+</body>
+</html>
