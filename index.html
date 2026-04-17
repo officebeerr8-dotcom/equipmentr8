@@ -1,8 +1,43 @@
-<!-- ONLY PATCHED PARTS SHOWN: replace in your file -->
+```html
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Equipment</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+
+<h2>ระบบวัสดุ</h2>
+
+<label>เดือน (รับเข้า):</label>
+<input type="month" id="receiveMonth">
+<button onclick="loadReceiveDocs()">โหลดรับเข้า</button>
+
+<br><br>
+
+<label>เดือน (เบิกจ่าย):</label>
+<input type="month" id="issueMonth">
+<button onclick="loadIssueDocs()">โหลดเบิก</button>
+
+<pre id="output"></pre>
 
 <script>
+const SUPABASE_URL = "https://zljfwhnimgjghsthcxjn.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M";
 
-// ==================== RECEIVE ====================
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let receiveDocs = [];
+let receiveLineItems = [];
+let issueDocs = [];
+let issueLineItems = [];
+
+function show(data) {
+  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+}
+
+// ================= RECEIVE =================
 async function loadReceiveDocs() {
   const month = document.getElementById('receiveMonth').value;
   let query = sb.from('receive_docs').select('*').order('date', { ascending: false });
@@ -10,7 +45,7 @@ async function loadReceiveDocs() {
   if (month) {
     const start = month + '-01';
 
-    // ✅ FIX: ใช้เดือนถัดไปแทน -31
+    // ✅ FIX เดือน
     const [y, m] = month.split('-').map(Number);
     const nextMonth = new Date(y, m, 1);
     const end = nextMonth.toISOString().slice(0,10);
@@ -19,26 +54,34 @@ async function loadReceiveDocs() {
   }
 
   const { data, error } = await query;
+
   if (error) {
-    console.log(error);
-    toast('โหลดรายการรับเข้าไม่ได้: ' + error.message, 'error');
+    console.error('RECEIVE ERROR:', error);
+    alert(error.message);
     return;
   }
 
   receiveDocs = data || [];
 
-  if (receiveDocs.length) {
+  if (receiveDocs.length > 0) {
     const ids = receiveDocs.map(d => d.id);
-    const { data: lines } = await sb.from('receive_lines').select('*').in('doc_id', ids);
+
+    const { data: lines, error: lineError } = await sb
+      .from('receive_lines')
+      .select('*')
+      .in('doc_id', ids);
+
+    if (lineError) console.error('RECEIVE LINES ERROR:', lineError);
+
     receiveLineItems = lines || [];
   } else {
     receiveLineItems = [];
   }
 
-  renderReceiveDocs();
+  show({ receiveDocs, receiveLineItems });
 }
 
-// ==================== ISSUE ====================
+// ================= ISSUE =================
 async function loadIssueDocs() {
   const month = document.getElementById('issueMonth').value;
   let query = sb.from('issue_docs').select('*').order('date', { ascending: false });
@@ -46,7 +89,7 @@ async function loadIssueDocs() {
   if (month) {
     const start = month + '-01';
 
-    // ✅ FIX: ใช้เดือนถัดไปแทน -31
+    // ✅ FIX เดือน
     const [y, m] = month.split('-').map(Number);
     const nextMonth = new Date(y, m, 1);
     const end = nextMonth.toISOString().slice(0,10);
@@ -55,25 +98,35 @@ async function loadIssueDocs() {
   }
 
   const { data, error } = await query;
+
   if (error) {
-    console.log(error);
-    toast('โหลดรายการเบิก-จ่ายไม่ได้: ' + error.message, 'error');
+    console.error('ISSUE ERROR:', error);
+    alert(error.message);
     return;
   }
 
   issueDocs = data || [];
 
-  if (issueDocs.length) {
+  if (issueDocs.length > 0) {
     const ids = issueDocs.map(d => d.id);
-    const { data: lines } = await sb.from('issue_lines').select('*').in('doc_id', ids);
+
+    const { data: lines, error: lineError } = await sb
+      .from('issue_lines')
+      .select('*')
+      .in('doc_id', ids);
+
+    if (lineError) console.error('ISSUE LINES ERROR:', lineError);
+
     issueLineItems = lines || [];
   } else {
     issueLineItems = [];
   }
 
-  renderIssueDocs();
+  show({ issueDocs, issueLineItems });
 }
 
 </script>
 
-<!-- END PATCH -->
+</body>
+</html>
+```
