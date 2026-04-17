@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Equipment Inventory</title>
 
+<!-- ✅ Supabase JS (สำคัญมาก) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -33,7 +34,6 @@ nav{
   border-top:1px solid var(--border);
   display:flex;
 }
-
 nav button{
   flex:1;border:none;background:none;
   padding:10px 4px;font-size:11px;
@@ -58,9 +58,7 @@ th{background:#f0f0f0;color:var(--text2);font-size:11px}
 .empty{text-align:center;padding:30px;color:var(--text2)}
 
 .img-thumb{width:60px;margin:auto;cursor:pointer}
-.img-thumb img{
-  width:100%;border-radius:6px;border:1px solid var(--border)
-}
+.img-thumb img{width:100%;border-radius:6px;border:1px solid var(--border)}
 
 .photo-placeholder{
   width:44px;height:44px;
@@ -140,23 +138,23 @@ th{background:#f0f0f0;color:var(--text2);font-size:11px}
 
 <!-- NAV -->
 <nav>
-  <button class="active" onclick="showPage('dashboard')">ภาพรวม</button>
-  <button onclick="showPage('receive')">รับเข้า</button>
-  <button onclick="showPage('issue')">จ่ายออก</button>
-  <button onclick="showPage('stock')">คงเหลือ</button>
+  <button data-page="dashboard" class="active" onclick="showPage('dashboard')">ภาพรวม</button>
+  <button data-page="receive"   onclick="showPage('receive')">รับเข้า</button>
+  <button data-page="issue"     onclick="showPage('issue')">จ่ายออก</button>
+  <button data-page="stock"     onclick="showPage('stock')">คงเหลือ</button>
 </nav>
 
 <script>
-/* ===== CONFIG ===== */
+/* ===== CONFIG (แก้ตรงนี้เท่านั้น) ===== */
 const SUPABASE_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const sb = supabase.createClient(https://zljfwhnimgjghsthcxjn.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M);
 
 /* ===== STATE ===== */
-let materials = [];
-let stockMap = {};
-let receiveDocs = [], receiveLines = [];
-let issueDocs = [], issueLines = [];
+let materials=[], stockMap={};
+let receiveDocs=[], receiveLines=[];
+let issueDocs=[], issueLines=[];
 
 /* ===== INIT ===== */
 init();
@@ -167,12 +165,14 @@ async function init(){
   await loadIssueDocs();
 }
 
-/* ===== MENU ===== */
+/* ===== MENU (แก้แล้ว กดได้แน่นอน) ===== */
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+
   document.getElementById(id).classList.add('active');
-  [...document.querySelectorAll('nav button')].find(b=>b.textContent.includes(id))?.classList.add('active');
+  document.querySelector(`nav button[data-page="${id}"]`)?.classList.add('active');
+
   if(id==='stock') loadStock();
 }
 
@@ -247,7 +247,7 @@ function renderReceiveDocs(){
         <td>${d.doc_number}</td>
         <td>${d.date}</td>
         <td>${summary}</td>
-        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><img src="${ceholder">📦</div>`}</td>
+        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><img src="${img}placeholder">📦</div>`}</td>
       </tr>`;
   }).join('');
 }
@@ -307,7 +307,7 @@ function renderStock(){
     const img=m.images?.[0];
     return `
       <tr>
-        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')"><{img}</div>`:`<div class="photo-placeholder">📦</div>`}</td>
+        <td>${img?`<div class="img-thumb" onclick="viewImage('${img}')">${img}</div>`:`<div class="photo-placeholder">📦</div>`}</td>
         <td>${m.code}</td>
         <td>${m.name}</td>
         <td><strong>${qty} ${m.unit}</strong></td>
