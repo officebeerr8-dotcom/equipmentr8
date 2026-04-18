@@ -3,1069 +3,1328 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Equipment — ระบบจัดการวัสดุอุปกรณ์</title>
+<title>equipment</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #fafafa;
-    --surface: #fff;
-    --border: #dbdbdb;
-    --border-light: #efefef;
-    --text: #262626;
-    --text-muted: #8e8e8e;
-    --text-light: #c7c7c7;
-    --primary: #0095f6;
-    --primary-dark: #0074cc;
-    --danger: #ed4956;
-    --success: #2ecc71;
-    --warning: #f5a623;
-    --accent: #833ab4;
-    --gradient: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-    --radius: 8px;
-    --radius-lg: 12px;
-    --shadow: 0 1px 3px rgba(0,0,0,.08);
-    --shadow-md: 0 4px 12px rgba(0,0,0,.1);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
-
-  /* Setup overlay */
-  #setup-overlay {
-    position: fixed; inset: 0; background: var(--surface); z-index: 9999;
-    display: flex; align-items: center; justify-content: center; padding: 2rem;
-  }
-  .setup-box {
-    max-width: 520px; width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 2.5rem; text-align: center;
-  }
-  .setup-logo { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: .5rem; font-family: 'Playfair Display', serif; }
-  .setup-sub { color: var(--text-muted); margin-bottom: 2rem; font-size: 13px; }
-  .setup-box label { display: block; text-align: left; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; margin-top: 1rem; }
-  .setup-box input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; outline: none; }
-  .setup-box input:focus { border-color: var(--primary); }
-  .btn-primary { background: var(--primary); color: #fff; border: none; border-radius: var(--radius); padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 1.5rem; font-family: 'Noto Sans Thai', sans-serif; }
-  .btn-primary:hover { background: var(--primary-dark); }
-  .sql-box { background: #f8f8f8; border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 1.5rem; text-align: left; font-size: 11px; font-family: monospace; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #333; }
-  .setup-note { font-size: 11px; color: var(--text-muted); margin-top: 1rem; line-height: 1.6; }
-
-  /* App Shell */
-  #app { display: none; min-height: 100vh; }
-
-  /* Header */
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-  .header-inner { max-width: 975px; margin: 0 auto; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
-  .logo { font-size: 1.6rem; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Playfair Display', serif; letter-spacing: -1px; }
-
-  /* Nav tabs */
-  .nav-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
-  .nav-tab { padding: 14px 20px; font-size: 13px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all .15s; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-  .nav-tab:hover { color: var(--text); }
-  .nav-tab.active { color: var(--text); border-bottom-color: var(--text); }
-  .nav-tab svg { width: 16px; height: 16px; }
-
-  /* Content */
-  .content { max-width: 975px; margin: 0 auto; padding: 24px 20px; }
-
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .card-title { font-size: 15px; font-weight: 600; }
-
-  /* Buttons */
-  .btn { border: none; border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans Thai', sans-serif; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
-  .btn-blue { background: var(--primary); color: #fff; }
-  .btn-blue:hover { background: var(--primary-dark); }
-  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
-  .btn-outline:hover { background: var(--bg); }
-  .btn-danger { background: var(--danger); color: #fff; }
-  .btn-success { background: var(--success); color: #fff; }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-  .btn-icon { background: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); display: flex; align-items: center; }
-  .btn-icon:hover { color: var(--text); }
-
-  /* Form */
-  .form-group { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
-  .form-input, .form-select, .form-textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: 'Noto Sans Thai', sans-serif; outline: none; background: var(--surface); color: var(--text); transition: border-color .15s; }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; background: var(--bg); }
-  tbody td { padding: 12px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
-  tbody tr:hover { background: var(--bg); }
-  tbody tr:last-child td { border-bottom: none; }
-
-  /* Badge */
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .badge-danger { background: #fde8ea; color: var(--danger); }
-  .badge-success { background: #d4edda; color: #155724; }
-  .badge-warning { background: #fff3cd; color: #856404; }
-  .badge-info { background: #e3f2fd; color: #1565c0; }
-
-  /* Avatar/Image */
-  .material-img { width: 40px; height: 40px; border-radius: var(--radius); object-fit: cover; border: 1px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 18px; overflow: hidden; }
-  .material-img img { width: 100%; height: 100%; object-fit: cover; }
-
-  /* Qty control */
-  .qty-control { display: flex; align-items: center; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; width: 120px; }
-  .qty-btn { width: 32px; height: 32px; border: none; background: var(--bg); cursor: pointer; font-size: 16px; color: var(--text); display: flex; align-items: center; justify-content: center; }
-  .qty-btn:hover { background: var(--border-light); }
-  .qty-input { border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border); width: 56px; height: 32px; text-align: center; font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; outline: none; background: var(--surface); }
-
-  /* Item row in receive/withdrawal */
-  .item-row { display: grid; grid-template-columns: 48px 1fr 130px 1fr 40px; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius); margin-bottom: 8px; background: var(--surface); }
-  .item-row-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); background: var(--bg); }
-
-  /* Stock level bar */
-  .stock-bar { width: 100%; height: 4px; border-radius: 4px; background: var(--border-light); overflow: hidden; margin-top: 4px; }
-  .stock-fill { height: 100%; border-radius: 4px; transition: width .3s; }
-  .stock-fill.ok { background: var(--success); }
-  .stock-fill.warn { background: var(--warning); }
-  .stock-fill.danger { background: var(--danger); }
-
-  /* QR Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-  .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; width: 360px; max-width: 95vw; }
-  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-  #qr-reader { width: 100%; border-radius: var(--radius); overflow: hidden; }
-
-  /* Stats */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
-  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
-  .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
-
-  /* Toast */
-  .toast { position: fixed; bottom: 24px; right: 24px; background: #262626; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 13px; z-index: 9999; animation: slideUp .2s ease; max-width: 300px; }
-  .toast.error { background: var(--danger); }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-  /* Empty state */
-  .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .3; }
-
-  /* Report chart bar */
-  .chart-container { margin: 16px 0; }
-  .chart-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-  .chart-label { width: 80px; font-size: 12px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
-  .chart-bar-wrap { flex: 1; background: var(--border-light); border-radius: 4px; height: 24px; overflow: hidden; }
-  .chart-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 12px; color: #fff; font-weight: 600; min-width: 30px; transition: width .4s; }
-  .chart-bar.receive { background: var(--primary); }
-  .chart-bar.withdraw { background: var(--accent); }
-
-  /* Loading */
-  .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
-  .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 8px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* Upload image */
-  .img-upload { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; color: var(--text-muted); font-size: 13px; transition: border-color .15s; }
-  .img-upload:hover { border-color: var(--primary); color: var(--primary); }
-  .img-preview { width: 80px; height: 80px; border-radius: var(--radius); object-fit: cover; border: 1px solid var(--border); margin-bottom: 8px; }
-
-  @media (max-width: 600px) {
-    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
-    .item-row { grid-template-columns: 40px 1fr; }
-    .item-row > *:nth-child(3), .item-row > *:nth-child(4), .item-row > *:nth-child(5) { grid-column: 1 / -1; }
-    .content { padding: 16px; }
-  }
+:root{--ig-white:#ffffff;--ig-bg:#fafafa;--ig-border:#dbdbdb;--ig-text:#262626;--ig-muted:#8e8e8e;--ig-blue:#0095f6;--ig-red:#ed4956;--ig-green:#58c322;--ig-orange:#fd9400;--ig-gradient:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);--ig-gradient-btn:linear-gradient(90deg,#833ab4,#fd1d1d,#fcb045);--radius:12px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(--ig-text);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:100;background:var(--ig-white);border-bottom:1px solid var(--ig-border);display:flex;align-items:center;justify-content:space-between;padding:10px 20px}
+.topbar-logo{font-size:22px;font-weight:600;background:var(--ig-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.5px}
+.topbar-icons{display:flex;gap:10px;align-items:center}
+.icon-btn{background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s;color:var(--ig-text);position:relative}
+.icon-btn:hover{background:var(--ig-bg)}
+.alert-badge{background:var(--ig-red);color:#fff;font-size:10px;font-weight:600;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;position:absolute;top:-2px;right:-2px}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;margin-right:4px;transition:background .4s}
+.conn-dot.on{background:var(--ig-green)}
+.conn-label{font-size:11px;color:var(--ig-muted)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--ig-white);border-top:1px solid var(--ig-border);display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;transition:all .2s;color:var(--ig-muted);font-size:10px;font-weight:400;white-space:nowrap;background:none;border:none;flex:1}
+.nav-item.active{color:var(--ig-text);font-weight:500}
+.nav-item svg{width:22px;height:22px}
+.main-content{max-width:640px;margin:0 auto;padding:16px 16px 90px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--ig-white);border:1px solid var(--ig-border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.card-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ig-border)}
+.card-title{font-size:14px;font-weight:600}
+.card-body{padding:16px}
+.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px}
+.product-tile{aspect-ratio:1;position:relative;cursor:pointer;background:#f0f0f0;overflow:hidden}
+.product-tile img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.product-tile:hover img{transform:scale(1.05)}
+.tile-overlay{position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;color:#fff;font-size:12px;text-align:center;padding:8px}
+.product-tile:hover .tile-overlay,.product-tile:active .tile-overlay{opacity:1}
+.tile-low{position:absolute;top:5px;right:5px;background:var(--ig-red);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:10px}
+.tile-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:10px;padding:14px 6px 6px}
+.product-no-img{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8e8e8,#f5f5f5);color:var(--ig-muted);font-size:10px;text-align:center;padding:8px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--ig-text);margin-bottom:6px}
+.form-control{width:100%;padding:10px 14px;border:1.5px solid var(--ig-border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;color:var(--ig-text);background:var(--ig-white);outline:none;transition:border-color .2s}
+.form-control:focus{border-color:var(--ig-blue)}
+.form-control::placeholder{color:var(--ig-muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--ig-blue);color:#fff}.btn-primary:hover{background:#1877f2}
+.btn-gradient{background:var(--ig-gradient-btn);color:#fff}.btn-gradient:hover{opacity:.9}
+.btn-outline{background:transparent;color:var(--ig-blue);border:1.5px solid var(--ig-blue)}.btn-outline:hover{background:#e8f4fd}
+.btn-danger{background:transparent;color:var(--ig-red);border:1.5px solid var(--ig-red)}.btn-danger:hover{background:#ffeef0}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-block{width:100%;justify-content:center}
+.btn-icon{background:var(--ig-bg);border:1px solid var(--ig-border);border-radius:var(--radius-sm);padding:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .2s;color:var(--ig-text)}
+.btn-icon:hover{background:var(--ig-border)}
+.story-row{display:flex;gap:14px;overflow-x:auto;padding:12px 0 8px;-ms-overflow-style:none;scrollbar-width:none}
+.story-row::-webkit-scrollbar{display:none}
+.story-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0}
+.story-ring{width:60px;height:60px;border-radius:50%;padding:2.5px;background:var(--ig-gradient);display:flex;align-items:center;justify-content:center}
+.story-ring-inner{width:100%;height:100%;border-radius:50%;background:var(--ig-white);display:flex;align-items:center;justify-content:center;padding:3px;overflow:hidden}
+.story-ring-inner img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.story-icon{width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#e8e8e8,#f5f5f5);display:flex;align-items:center;justify-content:center;font-size:20px}
+.story-label{font-size:10px;color:var(--ig-text);text-align:center;max-width:60px;line-height:1.3}
+.story-count{font-size:10px;color:var(--ig-muted)}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ig-border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.stat-cell{background:var(--ig-white);padding:14px 8px;text-align:center}
+.stat-num{font-size:20px;font-weight:600}
+.stat-label{font-size:11px;color:var(--ig-muted);margin-top:2px}
+.tx-item{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--ig-border);cursor:pointer;transition:background .15s}
+.tx-item:hover{background:var(--ig-bg)}.tx-item:last-child{border-bottom:none}
+.tx-avatar{width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#e8e8e8,#f5f5f5);display:flex;align-items:center;justify-content:center;font-size:18px}
+.tx-avatar img{width:100%;height:100%;object-fit:cover}
+.tx-info{flex:1;min-width:0}
+.tx-name{font-size:13px;font-weight:500}
+.tx-sub{font-size:11px;color:var(--ig-muted);margin-top:2px;line-height:1.4}
+.tx-actions{display:flex;gap:6px;margin-top:6px}
+.tx-amount{text-align:right;flex-shrink:0}
+.tx-qty{font-size:15px;font-weight:600}.tx-qty.out{color:var(--ig-red)}.tx-qty.in{color:var(--ig-green)}
+.tx-date{font-size:11px;color:var(--ig-muted);margin-top:2px}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-danger{background:#ffeef0;color:var(--ig-red)}
+.badge-success{background:#eafaf0;color:var(--ig-green)}
+.badge-warning{background:#fff8e6;color:var(--ig-orange)}
+.badge-info{background:#e8f4fd;color:var(--ig-blue)}
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+.modal-overlay.hidden{display:none}
+.modal-sheet{background:var(--ig-white);border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:0 0 30px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--ig-border);border-radius:2px;margin:10px auto 0}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--ig-border);position:sticky;top:0;background:white;z-index:1}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;cursor:pointer;font-size:22px;color:var(--ig-muted);line-height:1}
+.modal-body{padding:16px}
+.img-upload-area{border:2px dashed var(--ig-border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;background:var(--ig-bg)}
+.img-upload-area:hover{border-color:var(--ig-blue)}
+.img-upload-area img{max-width:100%;max-height:200px;border-radius:var(--radius-sm);margin-top:10px}
+.detail-table{width:100%;border-collapse:collapse;font-size:13px}
+.detail-table td{padding:10px 12px;border-bottom:1px solid var(--ig-border);vertical-align:middle}
+.detail-table tr:last-child td{border-bottom:none}
+.chart-container{position:relative;height:200px;margin:8px 0}
+.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-ms-overflow-style:none;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-chip{flex-shrink:0;padding:6px 14px;border:1.5px solid var(--ig-border);border-radius:20px;font-family:inherit;font-size:13px;background:var(--ig-white);color:var(--ig-text);cursor:pointer;transition:all .2s}
+.filter-chip.active{background:var(--ig-text);color:var(--ig-white);border-color:var(--ig-text)}
+.product-card{display:flex;gap:14px;align-items:center;padding:12px;background:var(--ig-white);border:1px solid var(--ig-border);border-radius:var(--radius);margin-bottom:10px;cursor:pointer;transition:all .2s}
+.product-card:hover,.product-card.selected{border-color:var(--ig-blue);background:#f0f8ff}
+.product-card-img{width:56px;height:56px;border-radius:var(--radius-sm);flex-shrink:0;background:var(--ig-bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.product-card-img img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)}
+.product-card-info{flex:1;min-width:0}
+.product-card-name{font-size:14px;font-weight:500}
+.product-card-code{font-size:11px;color:var(--ig-muted);margin-top:2px}
+.checkout-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ig-border)}
+.checkout-item:last-child{border-bottom:none}
+.checkout-item-name{flex:1;font-size:14px}
+.checkout-item-qty{display:flex;align-items:center;gap:6px}
+.qty-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--ig-border);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--ig-text)}
+.qty-btn:hover{border-color:var(--ig-blue);color:var(--ig-blue)}
+.qty-num{font-size:14px;font-weight:500;min-width:22px;text-align:center}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:16px;font-weight:600}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast-container{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;width:90%;max-width:360px;pointer-events:none}
+.toast{background:rgba(0,0,0,.85);color:#fff;padding:12px 16px;border-radius:var(--radius);font-size:14px;text-align:center;animation:fadeIn .3s ease}
+.toast.success{background:rgba(88,195,34,.92)}.toast.error{background:rgba(237,73,86,.92)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.doc-number-display{background:linear-gradient(135deg,#f8f9fa,#e8e8e8);border:1px solid var(--ig-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--ig-muted);letter-spacing:.5px;margin-bottom:14px}
+.doc-number-display span{font-weight:600;color:var(--ig-blue);font-size:15px}
+.empty-state{text-align:center;padding:36px 20px;color:var(--ig-muted)}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.empty-text{font-size:15px;font-weight:500;color:var(--ig-text);margin-bottom:5px}
+.empty-sub{font-size:13px}
+.month-nav{display:flex;align-items:center;justify-content:space-between;background:var(--ig-white);border:1px solid var(--ig-border);border-radius:var(--radius-sm);padding:8px 14px;margin-bottom:12px}
+.month-nav-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--ig-muted);padding:4px}
+.month-nav-label{font-size:15px;font-weight:500}
+.progress-bar{background:#f0f0f0;border-radius:4px;height:6px;overflow:hidden;margin:6px 0 4px}
+.progress-fill{height:100%;border-radius:4px;transition:width .5s}
+.stock-card{display:flex;gap:12px;align-items:center;padding:14px 16px;background:var(--ig-white);border:1px solid var(--ig-border);border-radius:var(--radius);margin-bottom:10px}
+.stock-card-img{width:52px;height:52px;border-radius:var(--radius-sm);background:var(--ig-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.stock-card-img img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)}
+#qr-video{width:100%;border-radius:var(--radius);max-height:260px;object-fit:cover}
+.qr-overlay{position:relative}
+.qr-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160px;height:160px;border:3px solid var(--ig-blue);border-radius:16px;pointer-events:none}
+.config-note{background:#f0f8ff;border-radius:var(--radius-sm);border:1px solid #bee3f8;padding:12px 14px;font-size:12px;color:#0c5460;line-height:1.7;margin-top:14px}
 </style>
 </head>
 <body>
 
-<!-- Setup Screen -->
-<div id="setup-overlay">
-  <div class="setup-box">
-    <div class="setup-logo">equipment</div>
-    <div class="setup-sub">ระบบจัดการวัสดุอุปกรณ์คงคลัง</div>
-    <p style="font-size:13px;color:var(--text);margin-bottom:1rem;">กรอก Supabase credentials เพื่อเชื่อมต่อฐานข้อมูล</p>
-    <label>Supabase URL</label>
-    <input id="sb-url" type="text" placeholder="https://xxxx.supabase.co" />
-    <label>Supabase Anon Key</label>
-    <input id="sb-key" type="text" placeholder="eyJ..." />
-    <button class="btn-primary" onclick="initApp()">เชื่อมต่อและเริ่มใช้งาน</button>
-    <div style="margin-top:1.5rem;text-align:left;">
-      <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:.5rem;">SQL สำหรับสร้าง tables (รัน 1 ครั้งใน Supabase SQL Editor)</p>
-      <div class="sql-box">-- 1. วัสดุอุปกรณ์
-CREATE TABLE materials (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  code text UNIQUE NOT NULL,
-  name text NOT NULL,
-  unit text NOT NULL,
-  min_quantity numeric DEFAULT 0,
-  image_url text,
-  current_stock numeric DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+<header class="topbar">
+  <div class="topbar-logo">equipment</div>
+  <div class="topbar-icons">
+    <span class="conn-label"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">ออฟไลน์</span></span>
+    <button class="icon-btn" onclick="showLowStockAlert()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="alert-badge" id="alert-badge" style="display:none">!</span>
+    </button>
+    <button class="icon-btn" onclick="openModal('modal-config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</header>
 
--- 2. รับเข้า docs
-CREATE TABLE receive_documents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  doc_number text UNIQUE NOT NULL,
-  note text,
-  created_at timestamptz DEFAULT now()
-);
-
--- 3. รายการรับเข้า
-CREATE TABLE receive_items (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  doc_id uuid REFERENCES receive_documents(id) ON DELETE CASCADE,
-  material_id uuid REFERENCES materials(id),
-  quantity numeric NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-
--- 4. เบิก-จ่าย docs
-CREATE TABLE withdrawal_documents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  doc_number text UNIQUE NOT NULL,
-  requester_name text NOT NULL,
-  department text NOT NULL,
-  note text,
-  created_at timestamptz DEFAULT now()
-);
-
--- 5. รายการเบิก-จ่าย
-CREATE TABLE withdrawal_items (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  doc_id uuid REFERENCES withdrawal_documents(id) ON DELETE CASCADE,
-  material_id uuid REFERENCES materials(id),
-  quantity numeric NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-
--- Trigger: อัปเดต stock เมื่อรับเข้า
-CREATE OR REPLACE FUNCTION update_stock_receive() RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE materials SET current_stock = current_stock + NEW.quantity, updated_at = now() WHERE id = NEW.material_id;
-  RETURN NEW;
-END; $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_receive AFTER INSERT ON receive_items
-FOR EACH ROW EXECUTE FUNCTION update_stock_receive();
-
--- Trigger: อัปเดต stock เมื่อเบิก-จ่าย
-CREATE OR REPLACE FUNCTION update_stock_withdraw() RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE materials SET current_stock = current_stock - NEW.quantity, updated_at = now() WHERE id = NEW.material_id;
-  RETURN NEW;
-END; $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_withdraw AFTER INSERT ON withdrawal_items
-FOR EACH ROW EXECUTE FUNCTION update_stock_withdraw();
-
--- RLS (allow all)
-ALTER TABLE materials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE receive_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE receive_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE withdrawal_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE withdrawal_items ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "all" ON materials FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "all" ON receive_documents FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "all" ON receive_items FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "all" ON withdrawal_documents FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "all" ON withdrawal_items FOR ALL USING (true) WITH CHECK (true);</div>
+<main class="main-content">
+  <!-- PAGE: Equipment -->
+  <div class="page active" id="page-equipment">
+    <div class="story-row" id="category-stories"></div>
+    <div class="stats-row">
+      <div class="stat-cell"><div class="stat-num" id="stat-total">0</div><div class="stat-label">รายการทั้งหมด</div></div>
+      <div class="stat-cell"><div class="stat-num" id="stat-low" style="color:var(--ig-red)">0</div><div class="stat-label">ใกล้หมด</div></div>
+      <div class="stat-cell"><div class="stat-num" id="stat-ok" style="color:var(--ig-green)">0</div><div class="stat-label">ปกติ</div></div>
     </div>
-    <p class="setup-note">ไปที่ Supabase → Project Settings → API เพื่อดู URL และ anon key</p>
+    <div class="section-header">
+      <span class="section-title">อุปกรณ์สำนักงาน</span>
+      <button class="btn btn-gradient btn-sm" onclick="openAddEquip()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>เพิ่มอุปกรณ์
+      </button>
+    </div>
+    <div class="product-grid" id="product-grid"></div>
+    <div class="empty-state" id="equipment-empty" style="display:none">
+      <div class="empty-icon">📦</div><div class="empty-text">ยังไม่มีอุปกรณ์สำนักงาน</div>
+      <div class="empty-sub">กดปุ่ม "เพิ่มอุปกรณ์" เพื่อเริ่มต้น</div>
+    </div>
+  </div>
+
+  <!-- PAGE: Issue -->
+  <div class="page" id="page-issue">
+    <div class="section-header">
+      <span class="section-title">เบิก-จ่าย</span>
+      <button class="btn btn-gradient btn-sm" onclick="openCreateIssue()">+ สร้างรายการ</button>
+    </div>
+    <div id="issue-list-wrap"></div>
+  </div>
+
+  <!-- PAGE: Receive -->
+  <div class="page" id="page-receive">
+    <div class="section-header">
+      <span class="section-title">รับเข้า</span>
+      <button class="btn btn-gradient btn-sm" onclick="openCreateReceive()">+ สร้างรายการ</button>
+    </div>
+    <div id="receive-list-wrap"></div>
+  </div>
+
+  <!-- PAGE: Stock -->
+  <div class="page" id="page-stock">
+    <div class="section-header">
+      <span class="section-title">สต๊อกคงเหลือ</span>
+      <button class="btn-icon" onclick="exportStock()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="filterStock('all',this)">ทั้งหมด</button>
+      <button class="filter-chip" onclick="filterStock('desc',this)">มาก → น้อย</button>
+      <button class="filter-chip" onclick="filterStock('asc',this)">น้อย → มาก</button>
+      <button class="filter-chip" onclick="filterStock('low',this)">⚠️ ใกล้หมด</button>
+    </div>
+    <div id="stock-list"></div>
+  </div>
+
+  <!-- PAGE: Issue Report -->
+  <div class="page" id="page-issue-report">
+    <div class="section-header">
+      <span class="section-title">รายงานเบิก-จ่าย</span>
+      <button class="btn-icon" onclick="exportIssueReport()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth('issue',-1)">‹</button>
+      <span class="month-nav-label" id="issue-report-month"></span>
+      <button class="month-nav-btn" onclick="changeMonth('issue',1)">›</button>
+    </div>
+    <div class="stats-row" style="margin-bottom:12px">
+      <div class="stat-cell"><div class="stat-num" id="ir-times">0</div><div class="stat-label">ครั้ง</div></div>
+      <div class="stat-cell"><div class="stat-num" id="ir-items">0</div><div class="stat-label">รายการ</div></div>
+      <div class="stat-cell"><div class="stat-num" id="ir-units">0</div><div class="stat-label">ชิ้น</div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">แนวโน้มรายวัน</span></div><div class="card-body"><div class="chart-container"><canvas id="issue-chart"></canvas></div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">รายการเบิก</span></div><div id="issue-report-list" style="padding:0"></div></div>
+  </div>
+
+  <!-- PAGE: Receive Report -->
+  <div class="page" id="page-receive-report">
+    <div class="section-header">
+      <span class="section-title">รายงานรับเข้า</span>
+      <button class="btn-icon" onclick="exportReceiveReport()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth('receive',-1)">‹</button>
+      <span class="month-nav-label" id="receive-report-month"></span>
+      <button class="month-nav-btn" onclick="changeMonth('receive',1)">›</button>
+    </div>
+    <div class="stats-row" style="margin-bottom:12px">
+      <div class="stat-cell"><div class="stat-num" id="rr-times">0</div><div class="stat-label">ครั้ง</div></div>
+      <div class="stat-cell"><div class="stat-num" id="rr-items">0</div><div class="stat-label">รายการ</div></div>
+      <div class="stat-cell"><div class="stat-num" id="rr-units">0</div><div class="stat-label">ชิ้น</div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">แนวโน้มรายวัน</span></div><div class="card-body"><div class="chart-container"><canvas id="receive-chart"></canvas></div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">รายการรับเข้า</span></div><div id="receive-report-list" style="padding:0"></div></div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="navigate('equipment',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>หน้าหลัก
+  </button>
+  <button class="nav-item" onclick="navigate('issue',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>เบิก-จ่าย
+  </button>
+  <button class="nav-item" onclick="navigate('receive',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>รับเข้า
+  </button>
+  <button class="nav-item" onclick="navigate('stock',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>สต๊อก
+  </button>
+  <button class="nav-item" onclick="openModal('modal-reports-tab')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>รายงาน
+  </button>
+</nav>
+
+<!-- Add/Edit Equipment -->
+<div class="modal-overlay hidden" id="modal-add-equipment">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="modal-equip-title">เพิ่มอุปกรณ์สำนักงาน</span>
+      <button class="modal-close" onclick="closeModal('modal-add-equipment')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="equip-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">รหัสอุปกรณ์ *</label><input type="text" class="form-control" id="equip-code" placeholder="EQ001"></div>
+        <div class="form-group"><label class="form-label">ชื่ออุปกรณ์ *</label><input type="text" class="form-control" id="equip-name" placeholder="กระดาษ A4"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">รูปภาพ</label>
+        <div class="img-upload-area" onclick="document.getElementById('equip-img-input').click()">
+          <div id="equip-img-preview">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" style="margin:0 auto;display:block"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p style="font-size:13px;color:#bbb;margin-top:8px">แตะเพื่อเลือกรูป</p>
+          </div>
+        </div>
+        <input type="file" id="equip-img-input" accept="image/*" style="display:none" onchange="previewEquipImg(this)">
+        <input type="text" class="form-control" id="equip-img-url" placeholder="หรือวาง URL รูปภาพ" style="margin-top:8px" oninput="previewEquipImgUrl(this.value)">
+        <input type="hidden" id="equip-img-data">
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">หน่วยนับ *</label><input type="text" class="form-control" id="equip-unit" placeholder="ชิ้น, รีม, กล่อง"></div>
+        <div class="form-group"><label class="form-label">จำนวนเตือนขั้นต่ำ</label><input type="number" class="form-control" id="equip-min-qty" value="5" min="0"></div>
+      </div>
+      <button class="btn btn-gradient btn-block" onclick="saveEquipment()" id="save-equip-btn">บันทึก</button>
+    </div>
   </div>
 </div>
 
-<!-- App -->
-<div id="app">
-  <div class="header">
-    <div class="header-inner">
-      <div class="logo">equipment</div>
-      <div style="font-size:12px;color:var(--text-muted);" id="header-time"></div>
+<!-- Create Issue -->
+<div class="modal-overlay hidden" id="modal-create-issue">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="modal-issue-title">สร้างรายการเบิก</span>
+      <button class="modal-close" onclick="closeModal('modal-create-issue')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="issue-edit-id">
+      <div class="doc-number-display">เลขที่: <span id="issue-doc-num">-</span></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">วันที่เบิก</label><input type="date" class="form-control" id="issue-date"></div>
+        <div class="form-group"><label class="form-label">ชื่อผู้เบิก *</label><input type="text" class="form-control" id="issue-requester" placeholder="ชื่อ-นามสกุล"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">หน่วยงาน *</label><input type="text" class="form-control" id="issue-dept" placeholder="แผนก / ฝ่าย"></div>
+        <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" class="form-control" id="issue-note" placeholder="(ถ้ามี)"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:600">รายการอุปกรณ์</span>
+        <button class="btn btn-outline btn-sm" onclick="openProductPicker('issue')">+ เลือกอุปกรณ์</button>
+      </div>
+      <div id="issue-items-list"><div class="empty-state" style="padding:20px"><div class="empty-sub">กดเลือกอุปกรณ์</div></div></div>
+      <button class="btn btn-gradient btn-block" onclick="submitIssue()" id="submit-issue-btn" style="margin-top:14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>บันทึกการเบิก
+      </button>
     </div>
   </div>
+</div>
 
-  <div class="nav-tabs" id="nav-tabs">
-    <div class="nav-tab active" data-tab="materials" onclick="switchTab('materials')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>วัสดุอุปกรณ์
+<!-- Create Receive -->
+<div class="modal-overlay hidden" id="modal-create-receive">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="modal-receive-title">สร้างรายการรับเข้า</span>
+      <button class="modal-close" onclick="closeModal('modal-create-receive')">×</button>
     </div>
-    <div class="nav-tab" data-tab="receive" onclick="switchTab('receive')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>รับเข้า
-    </div>
-    <div class="nav-tab" data-tab="withdraw" onclick="switchTab('withdraw')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>เบิก-จ่าย
-    </div>
-    <div class="nav-tab" data-tab="stock-report" onclick="switchTab('stock-report')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>คงเหลือ
-    </div>
-    <div class="nav-tab" data-tab="receive-report" onclick="switchTab('receive-report')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>รายงานรับเข้า
-    </div>
-    <div class="nav-tab" data-tab="withdraw-report" onclick="switchTab('withdraw-report')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M15 21V9"/></svg>รายงานเบิก-จ่าย
+    <div class="modal-body">
+      <input type="hidden" id="receive-edit-id">
+      <div class="doc-number-display">เลขที่: <span id="receive-doc-num">-</span></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">วันที่รับเข้า</label><input type="date" class="form-control" id="receive-date"></div>
+        <div class="form-group"><label class="form-label">หมายเหตุ</label><input type="text" class="form-control" id="receive-note" placeholder="(ถ้ามี)"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:600">รายการอุปกรณ์</span>
+        <button class="btn btn-outline btn-sm" onclick="openProductPicker('receive')">+ เลือกอุปกรณ์</button>
+      </div>
+      <div id="receive-items-list"><div class="empty-state" style="padding:20px"><div class="empty-sub">กดเลือกอุปกรณ์</div></div></div>
+      <button class="btn btn-gradient btn-block" onclick="submitReceive()" id="submit-receive-btn" style="margin-top:14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>บันทึกการรับเข้า
+      </button>
     </div>
   </div>
+</div>
 
-  <div class="content" id="tab-content"></div>
+<!-- Product Picker -->
+<div class="modal-overlay hidden" id="modal-product-picker">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">เลือกอุปกรณ์สำนักงาน</span>
+      <button class="modal-close" onclick="closeModal('modal-product-picker')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="form-control" id="picker-search" placeholder="ค้นหาอุปกรณ์..." oninput="filterPicker(this.value)" style="margin-bottom:12px">
+      <div id="picker-list"></div>
+      <button class="btn btn-gradient btn-block" onclick="confirmPicker()" style="margin-top:14px">ยืนยันการเลือก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reports tab -->
+<div class="modal-overlay hidden" id="modal-reports-tab">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title">เลือกรายงาน</span><button class="modal-close" onclick="closeModal('modal-reports-tab')">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-outline btn-block" onclick="goReport('issue-report')">📤 รายงานการเบิก-จ่าย</button>
+        <button class="btn btn-outline btn-block" onclick="goReport('receive-report')">📥 รายงานการรับเข้า</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Config (Supabase) -->
+<div class="modal-overlay hidden" id="modal-config">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title">⚙ ตั้งค่า Supabase</span><button class="modal-close" onclick="closeModal('modal-config')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Supabase URL</label><input type="url" class="form-control" id="config-sb-url" placeholder="https://xxxx.supabase.co"></div>
+      <div class="form-group"><label class="form-label">Supabase Anon Key</label><input type="text" class="form-control" id="config-sb-key" placeholder="eyJ..."></div>
+      <button class="btn btn-primary btn-block" onclick="saveConfig()">บันทึกและเชื่อมต่อ</button>
+      <div class="config-note">
+        <strong>วิธีตั้งค่า:</strong><br>
+        1. ไปที่ Supabase → Project Settings → API<br>
+        2. คัดลอก <strong>Project URL</strong> และ <strong>anon public key</strong><br>
+        3. วางด้านบนแล้วกดบันทึก<br><br>
+        💡 ใช้งานออฟไลน์ได้ด้วย demo data ก่อนเชื่อมต่อ
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Doc Detail -->
+<div class="modal-overlay hidden" id="modal-doc-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title" id="doc-detail-title">รายละเอียดเอกสาร</span><button class="modal-close" onclick="closeModal('modal-doc-detail')">×</button></div>
+    <div class="modal-body" id="doc-detail-body"></div>
+  </div>
+</div>
+
+<!-- Equipment Detail -->
+<div class="modal-overlay hidden" id="modal-equip-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title" id="detail-equip-name">รายละเอียด</span><button class="modal-close" onclick="closeModal('modal-equip-detail')">×</button></div>
+    <div class="modal-body" id="equip-detail-body"></div>
+  </div>
 </div>
 
 <!-- QR Modal -->
-<div id="qr-modal" class="modal-overlay" style="display:none;">
-  <div class="modal">
-    <div class="modal-title">สแกน QR Code <button class="btn-icon" onclick="closeQR()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div id="qr-reader"></div>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;">จ่อกล้องไปที่ QR Code ของวัสดุอุปกรณ์</p>
+<div class="modal-overlay hidden" id="modal-qr">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title">สแกน QR Code</span><button class="modal-close" onclick="closeQR()">×</button></div>
+    <div class="modal-body">
+      <div class="qr-overlay">
+        <video id="qr-video" autoplay playsinline></video>
+        <div class="qr-frame"></div>
+      </div>
+      <div style="margin-top:14px">
+        <p style="font-size:13px;color:var(--ig-muted);margin-bottom:8px;text-align:center">หรือพิมพ์รหัสอุปกรณ์</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-control" id="qr-manual-input" placeholder="รหัสอุปกรณ์...">
+          <button class="btn btn-primary" onclick="manualQRInput()">เพิ่ม</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Material Form Modal -->
-<div id="material-modal" class="modal-overlay" style="display:none;">
-  <div class="modal" style="width:480px;">
-    <div class="modal-title" id="material-modal-title">เพิ่มวัสดุอุปกรณ์ <button class="btn-icon" onclick="closeMaterialModal()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;">
-      <div>
-        <img id="modal-img-preview" style="width:80px;height:80px;border-radius:var(--radius);object-fit:cover;border:1px solid var(--border);display:none;" />
-        <div class="img-upload" onclick="document.getElementById('modal-img-input').click()" id="img-upload-area" style="width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span style="font-size:10px;">อัปโหลดรูป</span>
-        </div>
-        <input id="modal-img-input" type="file" accept="image/*" style="display:none;" onchange="previewImage(this)" />
-      </div>
-      <div style="flex:1;">
-        <div class="form-group" style="margin-bottom:10px;">
-          <label class="form-label">รหัสสินค้า *</label>
-          <div style="display:flex;gap:8px;">
-            <input class="form-input" id="m-code" placeholder="เช่น MAT-001" style="flex:1;" />
-            <button class="btn btn-outline btn-sm" onclick="openQR('m-code')" title="สแกน QR">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M16 16h5v5M16 16v5M16 11h5"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label class="form-label">ชื่อวัสดุอุปกรณ์ *</label>
-          <input class="form-input" id="m-name" placeholder="ชื่อวัสดุ" />
-        </div>
-      </div>
-    </div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">หน่วยนับ *</label>
-        <input class="form-input" id="m-unit" placeholder="เช่น ชิ้น, กล่อง, ม้วน" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">จำนวนขั้นต่ำ (แจ้งเตือน)</label>
-        <input class="form-input" id="m-min" type="number" placeholder="0" min="0" />
-      </div>
-    </div>
-    <input type="hidden" id="m-edit-id" />
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
-      <button class="btn btn-outline" onclick="closeMaterialModal()">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="saveMaterial()">บันทึก</button>
-    </div>
-  </div>
-</div>
+<div id="toast-container"></div>
 
 <script>
-let supabase;
-let currentTab = 'materials';
-let materials = [];
-let receiveItems = [];
-let withdrawItems = [];
-let qrCallback = null;
-let html5QrCode = null;
-let editingMaterialId = null;
-let pendingImgBase64 = null;
+// ===== SUPABASE CONFIG =====
+let SB_URL = localStorage.getItem('eq_sb_url') || '';
+let SB_KEY  = localStorage.getItem('eq_sb_key') || '';
+let sb = null; // supabase client
 
-// =================== SETUP ===================
-async function initApp() {
-  const url = document.getElementById('sb-url').value.trim();
-  const key = document.getElementById('sb-key').value.trim();
-  if (!url || !key) { showToast('กรุณากรอก URL และ Key', 'error'); return; }
+// ===== STATE =====
+let equipments=[], issueTransactions=[], receiveTransactions=[];
+let issueTxItems=[], receiveTxItems=[];
+let pickerTarget=null, pickerSelected={};
+let issueReportMonth=new Date(), receiveReportMonth=new Date();
+let issueChart=null, receiveChart=null;
+let editingIssueId=null, editingReceiveId=null;
+let qrStream=null, qrTarget=null;
+let usingDemo=false;
+
+// ===== DEMO DATA =====
+const DEMO_EQ=[
+  {id:'1',code:'EQ001',name:'กระดาษ A4',qty:50,unit:'รีม',minQty:10,img:''},
+  {id:'2',code:'EQ002',name:'ปากกาลูกลื่น',qty:8,unit:'ด้าม',minQty:20,img:''},
+  {id:'3',code:'EQ003',name:'แฟ้มเอกสาร',qty:30,unit:'อัน',minQty:5,img:''},
+  {id:'4',code:'EQ004',name:'คลิปหนีบ',qty:3,unit:'กล่อง',minQty:5,img:''},
+  {id:'5',code:'EQ005',name:'กาวแท่ง',qty:15,unit:'แท่ง',minQty:5,img:''},
+  {id:'6',code:'EQ006',name:'ซองเอกสาร A4',qty:100,unit:'ซอง',minQty:20,img:''},
+];
+const DEMO_ISS=[
+  {id:'i1',docNum:'IS-250115-001',date:'2025-01-15',requester:'สมชาย ใจดี',dept:'ฝ่ายบุคคล',note:'',items:[{code:'EQ001',name:'กระดาษ A4',qty:5,unit:'รีม'},{code:'EQ002',name:'ปากกาลูกลื่น',qty:10,unit:'ด้าม'}]},
+  {id:'i2',docNum:'IS-250120-001',date:'2025-01-20',requester:'สมหญิง รักงาน',dept:'ฝ่ายการเงิน',note:'',items:[{code:'EQ003',name:'แฟ้มเอกสาร',qty:5,unit:'อัน'}]},
+];
+const DEMO_REC=[
+  {id:'r1',docNum:'RC-250110-001',date:'2025-01-10',note:'สั่งซื้อรอบ ม.ค.',items:[{code:'EQ001',name:'กระดาษ A4',qty:50,unit:'รีม'},{code:'EQ002',name:'ปากกาลูกลื่น',qty:30,unit:'ด้าม'}]},
+  {id:'r2',docNum:'RC-250205-001',date:'2025-02-05',note:'',items:[{code:'EQ004',name:'คลิปหนีบ',qty:10,unit:'กล่อง'}]},
+];
+
+// ===== INIT =====
+async function init(){
+  document.getElementById('config-sb-url').value = SB_URL;
+  document.getElementById('config-sb-key').value = SB_KEY;
+  document.getElementById('issue-date').value = today();
+  document.getElementById('receive-date').value = today();
+  // load demo first
+  equipments = JSON.parse(JSON.stringify(DEMO_EQ));
+  issueTransactions = JSON.parse(JSON.stringify(DEMO_ISS));
+  receiveTransactions = JSON.parse(JSON.stringify(DEMO_REC));
+  usingDemo = true; setConn(false);
+  renderAll();
+  if(SB_URL && SB_KEY) await connectSupabase(SB_URL, SB_KEY);
+}
+
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+// ===== SUPABASE CONNECT =====
+async function connectSupabase(url, key){
   try {
-    supabase = window.supabase.createClient(url, key);
-    const { error } = await supabase.from('materials').select('id').limit(1);
-    if (error) throw error;
-    localStorage.setItem('eq-url', url);
-    localStorage.setItem('eq-key', key);
-    document.getElementById('setup-overlay').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    startClock();
-    await loadMaterials();
-    renderTab('materials');
-  } catch(e) {
-    showToast('เชื่อมต่อไม่สำเร็จ: ' + (e.message || 'ตรวจสอบ URL/Key อีกครั้ง'), 'error');
+    sb = window.supabase.createClient(url, key);
+    await loadAll();
+    setConn(true);
+    usingDemo = false;
+  } catch(e){
+    setConn(false);
+    toast('เชื่อมต่อไม่ได้: ' + e.message, 'error');
   }
 }
 
-window.onload = () => {
-  const url = localStorage.getItem('eq-url');
-  const key = localStorage.getItem('eq-key');
-  if (url && key) {
-    document.getElementById('sb-url').value = url;
-    document.getElementById('sb-key').value = key;
-    initApp();
-  }
-};
-
-function startClock() {
-  const el = document.getElementById('header-time');
-  setInterval(() => {
-    el.textContent = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
-  }, 1000);
+// ===== CONFIG =====
+function saveConfig(){
+  SB_URL = document.getElementById('config-sb-url').value.trim();
+  SB_KEY  = document.getElementById('config-sb-key').value.trim();
+  localStorage.setItem('eq_sb_url', SB_URL);
+  localStorage.setItem('eq_sb_key', SB_KEY);
+  closeModal('modal-config');
+  toast('บันทึกแล้ว กำลังเชื่อมต่อ...');
+  connectSupabase(SB_URL, SB_KEY);
 }
 
-// =================== NAVIGATION ===================
-function switchTab(tab) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  currentTab = tab;
-  renderTab(tab);
+function setConn(ok){
+  document.getElementById('conn-dot').className = 'conn-dot' + (ok ? ' on' : '');
+  document.getElementById('conn-text').textContent = ok ? 'เชื่อมต่อแล้ว' : 'ออฟไลน์';
 }
 
-async function renderTab(tab) {
-  const el = document.getElementById('tab-content');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-  if (tab === 'materials') await renderMaterials();
-  else if (tab === 'receive') renderReceive();
-  else if (tab === 'withdraw') renderWithdraw();
-  else if (tab === 'stock-report') await renderStockReport();
-  else if (tab === 'receive-report') await renderReceiveReport();
-  else if (tab === 'withdraw-report') await renderWithdrawReport();
+// ===== LOAD ALL FROM SUPABASE =====
+async function loadAll(){
+  if(!sb) return;
+  const [eqRes, issRes, recRes] = await Promise.all([
+    sb.from('materials').select('*').order('created_at'),
+    sb.from('issuing_documents').select('*, issuing_items(*, materials(code,name,unit,image_url))').order('created_at', {ascending:false}),
+    sb.from('receiving_documents').select('*, receiving_items(*, materials(code,name,unit,image_url))').order('created_at', {ascending:false}),
+  ]);
+  if(eqRes.error) throw eqRes.error;
+  equipments = (eqRes.data||[]).map(mapMaterial);
+  issueTransactions = (issRes.data||[]).map(mapIssuingDoc);
+  receiveTransactions = (recRes.data||[]).map(mapReceivingDoc);
+  renderAll();
 }
 
-// =================== MATERIALS ===================
-async function loadMaterials() {
-  const { data } = await supabase.from('materials').select('*').order('created_at', { ascending: false });
-  materials = data || [];
+// ===== DATA MAPPERS =====
+function mapMaterial(r){ return { id:r.id, code:r.code, name:r.name, unit:r.unit, minQty:r.min_qty||0, qty:r.current_stock||0, img:r.image_url||'' }; }
+function mapIssuingDoc(r){
+  return { id:r.id, docNum:r.doc_number, date:r.date, requester:r.requester_name, dept:r.department||'', note:r.note||'',
+    items:(r.issuing_items||[]).map(i=>({ code:i.materials?.code||'', name:i.materials?.name||'', qty:i.quantity, unit:i.materials?.unit||'', img:i.materials?.image_url||'' })) };
+}
+function mapReceivingDoc(r){
+  return { id:r.id, docNum:r.doc_number, date:r.date, note:r.note||'',
+    items:(r.receiving_items||[]).map(i=>({ code:i.materials?.code||'', name:i.materials?.name||'', qty:i.quantity, unit:i.materials?.unit||'', img:i.materials?.image_url||'' })) };
 }
 
-async function renderMaterials() {
-  await loadMaterials();
-  const el = document.getElementById('tab-content');
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">วัสดุอุปกรณ์ทั้งหมด (${materials.length} รายการ)</div>
-        <button class="btn btn-blue" onclick="openMaterialModal()">+ เพิ่มวัสดุอุปกรณ์</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>รูป</th><th>รหัสสินค้า</th><th>ชื่อวัสดุอุปกรณ์</th>
-            <th>หน่วย</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th><th></th>
-          </tr></thead>
-          <tbody id="materials-body"></tbody>
-        </table>
-      </div>
-      ${materials.length===0 ? '<div class="empty"><div class="empty-icon">📦</div><p>ยังไม่มีวัสดุอุปกรณ์</p></div>' : ''}
+// ===== RENDER =====
+function renderAll(){
+  renderEquip(); renderIssueList(); renderReceiveList();
+  renderStockReport(); renderIssueReport(); renderReceiveReport(); checkLowStock();
+}
+
+// ===== EQUIPMENT =====
+function renderEquip(){
+  const grid = document.getElementById('product-grid');
+  const empty = document.getElementById('equipment-empty');
+  const total = equipments.length, low = equipments.filter(e=>e.qty<=e.minQty).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-low').textContent = low;
+  document.getElementById('stat-ok').textContent = total - low;
+  if(!total){ grid.style.display='none'; empty.style.display='block'; }
+  else { grid.style.display='grid'; empty.style.display='none'; }
+  grid.innerHTML = equipments.map(eq=>`
+    <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
+      ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
+        `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${eq.name}</div></div>`}
+      ${eq.qty<=eq.minQty ? `<div class="tile-low">ใกล้หมด</div>` : ''}
+      <div class="tile-name">${eq.name}</div>
+      <div class="tile-overlay"><div style="font-weight:700;font-size:15px">${eq.qty}</div><div style="font-size:11px">${eq.unit}</div><div style="font-size:10px;opacity:.8">${eq.code}</div></div>
+    </div>`).join('');
+  renderStories();
+}
+
+function renderStories(){
+  const s = document.getElementById('category-stories');
+  const low = equipments.filter(e=>e.qty<=e.minQty);
+  const items = [{label:'ทั้งหมด',count:equipments.length,icon:'📦'},{label:'ใกล้หมด',count:low.length,icon:'⚠️'},
+    ...equipments.slice(0,5).map(e=>({label:e.name.length>6?e.name.slice(0,6)+'…':e.name,count:`${e.qty} ${e.unit}`,img:e.img}))];
+  s.innerHTML = items.map(x=>`<div class="story-item"><div class="story-ring"><div class="story-ring-inner">${x.img?`<img src="${x.img}" alt="">`:`<div class="story-icon">${x.icon||'📦'}</div>`}</div></div><div class="story-label">${x.label}</div><div class="story-count">${x.count}</div></div>`).join('');
+}
+
+function showEquipDetail(id){
+  const eq = equipments.find(e=>e.id===id); if(!eq) return;
+  document.getElementById('detail-equip-name').textContent = eq.name;
+  const isLow = eq.qty <= eq.minQty;
+  document.getElementById('equip-detail-body').innerHTML = `
+    ${eq.img ? `<img src="${eq.img}" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:14px">` : ''}
+    <table class="detail-table">
+      <tr><td style="color:var(--ig-muted);width:90px">รหัส</td><td style="font-weight:500">${eq.code}</td></tr>
+      <tr><td style="color:var(--ig-muted)">ชื่อ</td><td>${eq.name}</td></tr>
+      <tr><td style="color:var(--ig-muted)">คงเหลือ</td><td><span style="font-size:22px;font-weight:700;color:${isLow?'var(--ig-red)':'var(--ig-green)'}">${eq.qty}</span> <span style="color:var(--ig-muted)">${eq.unit}</span></td></tr>
+      <tr><td style="color:var(--ig-muted)">สถานะ</td><td>${isLow?'<span class="badge badge-danger">⚠️ ใกล้หมด</span>':'<span class="badge badge-success">✓ ปกติ</span>'}</td></tr>
+      <tr><td style="color:var(--ig-muted)">ขั้นต่ำ</td><td>${eq.minQty} ${eq.unit}</td></tr>
+    </table>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-outline btn-block" onclick="editEquipment('${eq.id}')">✏️ แก้ไข</button>
+      <button class="btn btn-danger btn-block" onclick="deleteEquipment('${eq.id}')">🗑 ลบ</button>
     </div>`;
-  const tbody = document.getElementById('materials-body');
-  if (!tbody) return;
-  materials.forEach(m => {
-    const pct = m.min_quantity > 0 ? Math.min((m.current_stock / (m.min_quantity * 2)) * 100, 100) : 100;
-    const isLow = m.current_stock <= m.min_quantity;
-    const statusClass = isLow ? 'badge-danger' : 'badge-success';
-    const statusText = isLow ? 'ใกล้หมด' : 'ปกติ';
-    const fillClass = isLow ? 'danger' : pct < 60 ? 'warn' : 'ok';
-    const imgHtml = m.image_url
-      ? `<div class="material-img"><img src="${m.image_url}" /></div>`
-      : `<div class="material-img"><span>📦</span></div>`;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${imgHtml}</td>
-      <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px;">${m.code}</code></td>
-      <td style="font-weight:500;">${m.name}</td>
-      <td>${m.unit}</td>
-      <td>
-        <strong>${m.current_stock}</strong>
-        <div class="stock-bar"><div class="stock-fill ${fillClass}" style="width:${pct}%"></div></div>
-      </td>
-      <td>${m.min_quantity}</td>
-      <td><span class="badge ${statusClass}">${statusText}</span></td>
-      <td>
-        <div style="display:flex;gap:4px;">
-          <button class="btn btn-outline btn-sm" onclick="editMaterial('${m.id}')">แก้ไข</button>
-          <button class="btn btn-sm" style="background:var(--bg);color:var(--danger);border:1px solid var(--border);" onclick="deleteMaterial('${m.id}')">ลบ</button>
-        </div>
-      </td>`;
-    tbody.appendChild(tr);
-  });
+  openModal('modal-equip-detail');
 }
 
-function openMaterialModal(id) {
-  editingMaterialId = null;
-  pendingImgBase64 = null;
-  document.getElementById('m-code').value = '';
-  document.getElementById('m-name').value = '';
-  document.getElementById('m-unit').value = '';
-  document.getElementById('m-min').value = '';
-  document.getElementById('m-edit-id').value = '';
-  document.getElementById('modal-img-preview').style.display = 'none';
-  document.getElementById('img-upload-area').style.display = 'flex';
-  document.getElementById('material-modal-title').textContent = 'เพิ่มวัสดุอุปกรณ์';
-  document.getElementById('material-modal').style.display = 'flex';
+function openAddEquip(){
+  document.getElementById('modal-equip-title').textContent = 'เพิ่มอุปกรณ์สำนักงาน';
+  ['equip-edit-id','equip-code','equip-name','equip-unit','equip-img-data','equip-img-url'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('equip-min-qty').value = 5;
+  resetImgPreview();
+  openModal('modal-add-equipment');
 }
 
-function editMaterial(id) {
-  const m = materials.find(x => x.id === id);
-  if (!m) return;
-  editingMaterialId = id;
-  pendingImgBase64 = null;
-  document.getElementById('m-code').value = m.code;
-  document.getElementById('m-name').value = m.name;
-  document.getElementById('m-unit').value = m.unit;
-  document.getElementById('m-min').value = m.min_quantity;
-  document.getElementById('m-edit-id').value = id;
-  document.getElementById('material-modal-title').textContent = 'แก้ไขวัสดุอุปกรณ์';
-  if (m.image_url) {
-    document.getElementById('modal-img-preview').src = m.image_url;
-    document.getElementById('modal-img-preview').style.display = 'block';
-    document.getElementById('img-upload-area').style.display = 'none';
+function editEquipment(id){
+  const eq = equipments.find(e=>e.id===id); if(!eq) return;
+  closeModal('modal-equip-detail');
+  document.getElementById('modal-equip-title').textContent = 'แก้ไขอุปกรณ์';
+  document.getElementById('equip-edit-id').value = eq.id;
+  document.getElementById('equip-code').value = eq.code;
+  document.getElementById('equip-name').value = eq.name;
+  document.getElementById('equip-unit').value = eq.unit;
+  document.getElementById('equip-min-qty').value = eq.minQty;
+  document.getElementById('equip-img-data').value = eq.img || '';
+  document.getElementById('equip-img-url').value = (eq.img && !eq.img.startsWith('data:')) ? eq.img : '';
+  if(eq.img) document.getElementById('equip-img-preview').innerHTML = `<img src="${eq.img}" style="max-height:150px;border-radius:8px">`;
+  else resetImgPreview();
+  openModal('modal-add-equipment');
+}
+
+async function deleteEquipment(id){
+  if(!confirm('ลบอุปกรณ์นี้?')) return;
+  if(!usingDemo){
+    const { error } = await sb.from('materials').delete().eq('id', id);
+    if(error){ toast('ลบไม่สำเร็จ: '+error.message,'error'); return; }
   } else {
-    document.getElementById('modal-img-preview').style.display = 'none';
-    document.getElementById('img-upload-area').style.display = 'flex';
+    const i = equipments.findIndex(e=>e.id===id); if(i>=0) equipments.splice(i,1);
   }
-  document.getElementById('material-modal').style.display = 'flex';
+  closeModal('modal-equip-detail');
+  if(!usingDemo) await reloadEquip();
+  else { renderEquip(); renderStockReport(); checkLowStock(); }
+  toast('ลบแล้ว', 'error');
 }
 
-function closeMaterialModal() {
-  document.getElementById('material-modal').style.display = 'none';
+async function saveEquipment(){
+  const code = document.getElementById('equip-code').value.trim();
+  const name = document.getElementById('equip-name').value.trim();
+  const unit = document.getElementById('equip-unit').value.trim();
+  const minQty = parseInt(document.getElementById('equip-min-qty').value)||0;
+  const img = document.getElementById('equip-img-data').value;
+  const editId = document.getElementById('equip-edit-id').value;
+  if(!code||!name||!unit){ toast('กรุณากรอกข้อมูลที่จำเป็น','error'); return; }
+  const btn = document.getElementById('save-equip-btn');
+  btn.innerHTML = '<span class="spinner"></span> กำลังบันทึก...'; btn.disabled = true;
+
+  if(!usingDemo){
+    const payload = { code, name, unit, min_qty: minQty, image_url: img||null };
+    let error;
+    if(editId){
+      ({ error } = await sb.from('materials').update(payload).eq('id', editId));
+    } else {
+      ({ error } = await sb.from('materials').insert({ ...payload, current_stock: 0 }));
+    }
+    if(error){ toast('บันทึกไม่สำเร็จ: '+error.message,'error'); btn.innerHTML='บันทึก'; btn.disabled=false; return; }
+    await reloadEquip();
+  } else {
+    if(editId){ const i=equipments.findIndex(e=>e.id===editId); if(i>=0) equipments[i]={...equipments[i],code,name,unit,minQty,img}; }
+    else equipments.push({id:Date.now().toString(),code,name,unit,minQty,img,qty:0});
+    renderEquip(); renderStockReport(); checkLowStock();
+  }
+  closeModal('modal-add-equipment');
+  btn.innerHTML = 'บันทึก'; btn.disabled = false;
+  toast('บันทึกสำเร็จ ✓','success');
 }
 
-function previewImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    pendingImgBase64 = e.target.result;
-    document.getElementById('modal-img-preview').src = pendingImgBase64;
-    document.getElementById('modal-img-preview').style.display = 'block';
-    document.getElementById('img-upload-area').style.display = 'none';
+function resetImgPreview(){
+  document.getElementById('equip-img-preview').innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" style="margin:0 auto;display:block"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><p style="font-size:13px;color:#bbb;margin-top:8px">แตะเพื่อเลือกรูป</p>`;
+}
+
+function resizeImageDataUrl(dataUrl, maxSize, quality, cb){
+  const img = new Image();
+  img.onload = () => {
+    let w=img.width, h=img.height;
+    if(w>maxSize||h>maxSize){ const r=Math.min(maxSize/w,maxSize/h); w=Math.round(w*r); h=Math.round(h*r); }
+    const c = document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg', quality));
   };
-  reader.readAsDataURL(file);
+  img.src = dataUrl;
 }
 
-async function saveMaterial() {
-  const code = document.getElementById('m-code').value.trim();
-  const name = document.getElementById('m-name').value.trim();
-  const unit = document.getElementById('m-unit').value.trim();
-  const min_quantity = parseFloat(document.getElementById('m-min').value) || 0;
-  if (!code || !name || !unit) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
-  const payload = { code, name, unit, min_quantity, updated_at: new Date().toISOString() };
-  if (pendingImgBase64) payload.image_url = pendingImgBase64;
-  let error;
-  if (editingMaterialId) {
-    ({ error } = await supabase.from('materials').update(payload).eq('id', editingMaterialId));
+function previewEquipImg(input){
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    resizeImageDataUrl(e.target.result, 800, 0.82, resized => {
+      document.getElementById('equip-img-data').value = resized;
+      document.getElementById('equip-img-preview').innerHTML =
+        `<img src="${resized}" style="max-height:150px;border-radius:8px"><p style="font-size:11px;color:var(--ig-muted);margin-top:4px">✓ เลือกรูปแล้ว</p>`;
+      document.getElementById('equip-img-url').value = '';
+    });
+  };
+  r.readAsDataURL(file);
+}
+
+function previewEquipImgUrl(url){
+  if(!url){ resetImgPreview(); document.getElementById('equip-img-data').value=''; return; }
+  document.getElementById('equip-img-data').value = url;
+  document.getElementById('equip-img-preview').innerHTML = `<img src="${url}" style="max-height:150px;border-radius:8px" onerror="this.style.display='none'">`;
+}
+
+async function reloadEquip(){
+  if(!usingDemo){
+    const { data } = await sb.from('materials').select('*').order('created_at');
+    equipments = (data||[]).map(mapMaterial);
+  }
+  renderEquip(); renderStockReport(); checkLowStock();
+}
+
+// ===== ISSUE LIST =====
+function renderIssueList(){
+  const wrap = document.getElementById('issue-list-wrap');
+  const sorted = [...issueTransactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!sorted.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">ยังไม่มีรายการเบิก</div></div>`; return; }
+  wrap.innerHTML = `<div class="card"><div style="padding:0">${sorted.map(tx=>{
+    const total = (tx.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+    const summary = (tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    return `<div class="tx-item">
+      <div class="tx-avatar" style="background:linear-gradient(135deg,#ffeef0,#ffd6da)">📤</div>
+      <div class="tx-info" onclick="viewDoc('issue','${tx.id}')">
+        <div class="tx-name">${tx.requester} <span style="color:var(--ig-muted);font-size:11px">${tx.dept||''}</span></div>
+        <div class="tx-sub">${tx.docNum} · ${fmtDate(tx.date)}</div>
+        <div class="tx-sub">${summary}</div>
+        <div class="tx-actions">
+          <button class="btn btn-sm btn-outline" style="padding:3px 10px" onclick="event.stopPropagation();editIssue('${tx.id}')">✏️ แก้ไข</button>
+          <button class="btn btn-sm btn-danger" style="padding:3px 10px" onclick="event.stopPropagation();deleteIssue('${tx.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="tx-amount"><div class="tx-qty out">-${total}</div><div class="tx-date">ชิ้น</div></div>
+    </div>`;
+  }).join('')}</div></div>`;
+}
+
+function openCreateIssue(){
+  editingIssueId = null;
+  document.getElementById('modal-issue-title').textContent = 'สร้างรายการเบิก';
+  document.getElementById('issue-edit-id').value = '';
+  document.getElementById('issue-doc-num').textContent = genNum('IS');
+  document.getElementById('issue-date').value = today();
+  ['issue-requester','issue-dept','issue-note'].forEach(id=>document.getElementById(id).value='');
+  issueTxItems = []; renderIssueTxItems(); openModal('modal-create-issue');
+}
+
+function editIssue(id){
+  const tx = issueTransactions.find(t=>t.id===id); if(!tx) return;
+  editingIssueId = id;
+  document.getElementById('modal-issue-title').textContent = 'แก้ไขรายการเบิก';
+  document.getElementById('issue-edit-id').value = id;
+  document.getElementById('issue-doc-num').textContent = tx.docNum;
+  document.getElementById('issue-date').value = tx.date;
+  document.getElementById('issue-requester').value = tx.requester;
+  document.getElementById('issue-dept').value = tx.dept||'';
+  document.getElementById('issue-note').value = tx.note||'';
+  issueTxItems = (tx.items||[]).map(i=>({...i}));
+  renderIssueTxItems(); openModal('modal-create-issue');
+}
+
+async function deleteIssue(id){
+  if(!confirm('ลบรายการเบิกนี้?\n(สต๊อกจะถูกคืน)')) return;
+  const tx = issueTransactions.find(t=>t.id===id);
+  if(!usingDemo && tx){
+    // คืนสต๊อกก่อน แล้วลบ doc (cascade ลบ items)
+    for(const it of (tx.items||[])){
+      const eq = equipments.find(e=>e.code===it.code);
+      if(eq) await sb.from('materials').update({current_stock: eq.qty + it.qty}).eq('id', eq.id);
+    }
+    const { error } = await sb.from('issuing_documents').delete().eq('id', id);
+    if(error){ toast('ลบไม่สำเร็จ','error'); return; }
+    await loadAll();
   } else {
-    ({ error } = await supabase.from('materials').insert({ ...payload, current_stock: 0 }));
+    if(tx)(tx.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty+=it.qty; });
+    issueTransactions = issueTransactions.filter(t=>t.id!==id);
+    renderAll();
   }
-  if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return; }
-  showToast(editingMaterialId ? 'แก้ไขสำเร็จ' : 'เพิ่มวัสดุสำเร็จ');
-  closeMaterialModal();
-  await renderMaterials();
+  toast('ลบรายการเบิกแล้ว','error');
 }
 
-async function deleteMaterial(id) {
-  if (!confirm('ต้องการลบวัสดุนี้?')) return;
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) { showToast('ลบไม่สำเร็จ', 'error'); return; }
-  showToast('ลบสำเร็จ');
-  await renderMaterials();
-}
-
-// =================== RECEIVE ===================
-function renderReceive() {
-  receiveItems = [];
-  const docNo = genDocNumber('RCV');
-  const el = document.getElementById('tab-content');
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">สร้างรายการรับเข้า</div>
-          <div style="font-size:12px;color:var(--text-muted);">เลขที่เอกสาร: <strong>${docNo}</strong></div>
-        </div>
+function renderIssueTxItems(){
+  const el = document.getElementById('issue-items-list');
+  if(!issueTxItems.length){ el.innerHTML=`<div class="empty-state" style="padding:20px"><div class="empty-sub">กดเลือกอุปกรณ์</div></div>`; return; }
+  el.innerHTML = issueTxItems.map((item,i)=>{
+    const avail = getAvailStock(item.code, editingIssueId);
+    return `<div class="checkout-item">
+      <div class="tx-avatar">${item.img?`<img src="${item.img}" alt="">`:item.qty>avail?'⚠️':'📦'}</div>
+      <div class="checkout-item-name">
+        <div style="font-weight:500;font-size:13px">${item.name}</div>
+        <div style="font-size:11px;color:var(--ig-muted)">${item.code} · ${item.unit}</div>
+        <div style="font-size:11px;color:${item.qty>avail?'var(--ig-red)':'var(--ig-blue)'}">คงเหลือ: ${avail} ${item.unit}</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">หมายเหตุ</label>
-        <input class="form-input" id="recv-note" placeholder="หมายเหตุ (ถ้ามี)" />
+      <div class="checkout-item-qty">
+        <button class="qty-btn" onclick="adjIssue(${i},-1)">−</button>
+        <span class="qty-num" style="color:${item.qty>avail?'var(--ig-red)':''}">${item.qty}</span>
+        <button class="qty-btn" onclick="adjIssue(${i},1)">+</button>
+        <button class="qty-btn" onclick="rmIssue(${i})" style="color:var(--ig-red);border-color:var(--ig-red)">×</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-weight:600;font-size:14px;">รายการวัสดุ</div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline btn-sm" onclick="openQR('recv-qr')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M16 16h5v5M16 16v5M16 11h5"/></svg>สแกน QR
-          </button>
-          <button class="btn btn-blue btn-sm" onclick="addReceiveRow()">+ เพิ่มรายการ</button>
-        </div>
-      </div>
-      <div id="receive-rows"></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:16px;gap:8px;">
-        <button class="btn btn-outline" onclick="renderReceive()">ล้างข้อมูล</button>
-        <button class="btn btn-blue" onclick="saveReceive('${docNo}')">บันทึกรับเข้า</button>
-      </div>
-    </div>
-    <div class="card" id="recv-history-card">
-      <div class="card-header"><div class="card-title">ประวัติรับเข้าล่าสุด</div></div>
-      <div id="recv-history">กำลังโหลด...</div>
     </div>`;
-  addReceiveRow();
-  loadReceiveHistory();
-}
-
-function addReceiveRow(preCode) {
-  const row = document.createElement('div');
-  row.className = 'item-row';
-  row.style.gridTemplateColumns = '48px 1fr 130px 1fr 40px';
-  const m = preCode ? materials.find(x => x.code === preCode) : null;
-  const imgSrc = m && m.image_url ? m.image_url : '';
-  row.innerHTML = `
-    <div class="material-img">${imgSrc ? `<img src="${imgSrc}" />` : '📦'}</div>
-    <select class="form-select mat-select" onchange="updateRowImg(this)">
-      <option value="">-- เลือกวัสดุ --</option>
-      ${materials.map(x => `<option value="${x.id}" ${m&&m.id===x.id?'selected':''} data-img="${x.image_url||''}">${x.code} – ${x.name} (${x.unit})</option>`).join('')}
-    </select>
-    <div class="qty-control">
-      <button class="qty-btn" onclick="changeQty(this,-1)">−</button>
-      <input class="qty-input" type="number" value="1" min="1" />
-      <button class="qty-btn" onclick="changeQty(this,1)">+</button>
-    </div>
-    <input class="form-input" placeholder="หมายเหตุรายการ" style="font-size:13px;" />
-    <button class="btn-icon" onclick="this.closest('.item-row').remove()" style="color:var(--danger);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>`;
-  document.getElementById('receive-rows').appendChild(row);
-}
-
-function updateRowImg(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  const imgDiv = sel.closest('.item-row').querySelector('.material-img');
-  const imgSrc = opt ? opt.dataset.img : '';
-  imgDiv.innerHTML = imgSrc ? `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />` : '📦';
-}
-
-async function saveReceive(docNo) {
-  const note = document.getElementById('recv-note').value;
-  const rows = document.querySelectorAll('#receive-rows .item-row');
-  const items = [];
-  for (const row of rows) {
-    const matId = row.querySelector('.mat-select').value;
-    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
-    if (!matId || qty <= 0) continue;
-    items.push({ material_id: matId, quantity: qty });
-  }
-  if (items.length === 0) { showToast('กรุณาเพิ่มรายการอย่างน้อย 1 รายการ', 'error'); return; }
-  const { data: doc, error: docErr } = await supabase.from('receive_documents').insert({ doc_number: docNo, note }).select().single();
-  if (docErr) { showToast('บันทึกไม่สำเร็จ', 'error'); return; }
-  const { error: itemErr } = await supabase.from('receive_items').insert(items.map(i => ({ ...i, doc_id: doc.id })));
-  if (itemErr) { showToast('บันทึกรายการไม่สำเร็จ', 'error'); return; }
-  showToast('บันทึกรับเข้าสำเร็จ');
-  await loadMaterials();
-  renderReceive();
-}
-
-async function loadReceiveHistory() {
-  const el = document.getElementById('recv-history');
-  if (!el) return;
-  const { data } = await supabase.from('receive_documents').select('*, receive_items(*, materials(name,code,unit))').order('created_at', { ascending: false }).limit(10);
-  if (!data || data.length === 0) { el.innerHTML = '<div class="empty"><p>ยังไม่มีประวัติ</p></div>'; return; }
-  el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>เลขที่</th><th>วันที่</th><th>รายการ</th><th>หมายเหตุ</th></tr></thead>
-    <tbody>${data.map(d => `<tr>
-      <td><code style="font-size:12px;background:var(--bg);padding:2px 6px;border-radius:4px;">${d.doc_number}</code></td>
-      <td style="font-size:12px;color:var(--text-muted);">${new Date(d.created_at).toLocaleDateString('th-TH')}</td>
-      <td>${(d.receive_items||[]).map(i => `${i.materials?.name||''} ×${i.quantity} ${i.materials?.unit||''}`).join(', ')}</td>
-      <td style="color:var(--text-muted);font-size:12px;">${d.note||'—'}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
-}
-
-// =================== WITHDRAW ===================
-function renderWithdraw() {
-  const docNo = genDocNumber('WTH');
-  const el = document.getElementById('tab-content');
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">สร้างรายการเบิก-จ่าย</div>
-          <div style="font-size:12px;color:var(--text-muted);">เลขที่เอกสาร: <strong>${docNo}</strong></div>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">ชื่อผู้เบิก *</label>
-          <input class="form-input" id="wth-requester" placeholder="ชื่อผู้เบิก" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">หน่วยงาน *</label>
-          <input class="form-input" id="wth-dept" placeholder="ฝ่าย/แผนก" />
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">หมายเหตุ</label>
-        <input class="form-input" id="wth-note" placeholder="หมายเหตุ (ถ้ามี)" />
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-weight:600;font-size:14px;">รายการวัสดุ</div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline btn-sm" onclick="openQR('wth-qr')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M16 16h5v5M16 16v5M16 11h5"/></svg>สแกน QR
-          </button>
-          <button class="btn btn-blue btn-sm" onclick="addWithdrawRow()">+ เพิ่มรายการ</button>
-        </div>
-      </div>
-      <div id="withdraw-rows"></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:16px;gap:8px;">
-        <button class="btn btn-outline" onclick="renderWithdraw()">ล้างข้อมูล</button>
-        <button class="btn btn-blue" onclick="saveWithdraw('${docNo}')">บันทึกเบิก-จ่าย</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-title">ประวัติเบิก-จ่ายล่าสุด</div></div>
-      <div id="wth-history">กำลังโหลด...</div>
-    </div>`;
-  addWithdrawRow();
-  loadWithdrawHistory();
-}
-
-function addWithdrawRow(preCode) {
-  const row = document.createElement('div');
-  row.className = 'item-row';
-  row.style.gridTemplateColumns = '48px 1fr 130px 40px';
-  const m = preCode ? materials.find(x => x.code === preCode) : null;
-  const imgSrc = m && m.image_url ? m.image_url : '';
-  row.innerHTML = `
-    <div class="material-img">${imgSrc ? `<img src="${imgSrc}" />` : '📦'}</div>
-    <select class="form-select mat-select" onchange="updateRowImg(this)">
-      <option value="">-- เลือกวัสดุ --</option>
-      ${materials.map(x => `<option value="${x.id}" ${m&&m.id===x.id?'selected':''} data-img="${x.image_url||''}">${x.code} – ${x.name} (${x.unit}) คงเหลือ: ${x.current_stock}</option>`).join('')}
-    </select>
-    <div class="qty-control">
-      <button class="qty-btn" onclick="changeQty(this,-1)">−</button>
-      <input class="qty-input" type="number" value="1" min="1" />
-      <button class="qty-btn" onclick="changeQty(this,1)">+</button>
-    </div>
-    <button class="btn-icon" onclick="this.closest('.item-row').remove()" style="color:var(--danger);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>`;
-  document.getElementById('withdraw-rows').appendChild(row);
-}
-
-async function saveWithdraw(docNo) {
-  const requester_name = document.getElementById('wth-requester').value.trim();
-  const department = document.getElementById('wth-dept').value.trim();
-  const note = document.getElementById('wth-note').value;
-  if (!requester_name || !department) { showToast('กรุณากรอกชื่อผู้เบิกและหน่วยงาน', 'error'); return; }
-  const rows = document.querySelectorAll('#withdraw-rows .item-row');
-  const items = [];
-  for (const row of rows) {
-    const matId = row.querySelector('.mat-select').value;
-    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
-    if (!matId || qty <= 0) continue;
-    const mat = materials.find(m => m.id === matId);
-    if (mat && qty > mat.current_stock) { showToast(`${mat.name}: สต็อกไม่พอ (คงเหลือ ${mat.current_stock})`, 'error'); return; }
-    items.push({ material_id: matId, quantity: qty });
-  }
-  if (items.length === 0) { showToast('กรุณาเพิ่มรายการอย่างน้อย 1 รายการ', 'error'); return; }
-  const { data: doc, error: docErr } = await supabase.from('withdrawal_documents').insert({ doc_number: docNo, requester_name, department, note }).select().single();
-  if (docErr) { showToast('บันทึกไม่สำเร็จ', 'error'); return; }
-  const { error: itemErr } = await supabase.from('withdrawal_items').insert(items.map(i => ({ ...i, doc_id: doc.id })));
-  if (itemErr) { showToast('บันทึกรายการไม่สำเร็จ', 'error'); return; }
-  showToast('บันทึกเบิก-จ่ายสำเร็จ');
-  await loadMaterials();
-  renderWithdraw();
-}
-
-async function loadWithdrawHistory() {
-  const el = document.getElementById('wth-history');
-  if (!el) return;
-  const { data } = await supabase.from('withdrawal_documents').select('*, withdrawal_items(*, materials(name,code,unit))').order('created_at', { ascending: false }).limit(10);
-  if (!data || data.length === 0) { el.innerHTML = '<div class="empty"><p>ยังไม่มีประวัติ</p></div>'; return; }
-  el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>เลขที่</th><th>วันที่</th><th>ผู้เบิก</th><th>หน่วยงาน</th><th>รายการ</th></tr></thead>
-    <tbody>${data.map(d => `<tr>
-      <td><code style="font-size:12px;background:var(--bg);padding:2px 6px;border-radius:4px;">${d.doc_number}</code></td>
-      <td style="font-size:12px;color:var(--text-muted);">${new Date(d.created_at).toLocaleDateString('th-TH')}</td>
-      <td style="font-weight:500;">${d.requester_name}</td>
-      <td>${d.department}</td>
-      <td>${(d.withdrawal_items||[]).map(i => `${i.materials?.name||''} ×${i.quantity}`).join(', ')}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
-}
-
-// =================== STOCK REPORT ===================
-async function renderStockReport() {
-  await loadMaterials();
-  const el = document.getElementById('tab-content');
-  const lowItems = materials.filter(m => m.current_stock <= m.min_quantity);
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">วัสดุทั้งหมด</div><div class="stat-value">${materials.length}</div></div>
-      <div class="stat-card"><div class="stat-label">ใกล้หมด</div><div class="stat-value" style="color:var(--danger);">${lowItems.length}</div></div>
-      <div class="stat-card"><div class="stat-label">ปกติ</div><div class="stat-value" style="color:var(--success);">${materials.length - lowItems.length}</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">รายงานวัสดุคงเหลือ</div>
-        <div style="display:flex;gap:8px;">
-          <select class="form-select" style="width:auto;font-size:13px;" onchange="filterStock(this.value)">
-            <option value="all">ทั้งหมด</option>
-            <option value="low">ใกล้หมดเท่านั้น</option>
-            <option value="desc">มากไปน้อย</option>
-            <option value="asc">น้อยไปมาก</option>
-          </select>
-          <button class="btn btn-outline btn-sm" onclick="downloadStockReport()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด
-          </button>
-        </div>
-      </div>
-      <div id="stock-table-wrap"><div class="table-wrap"><table>
-        <thead><tr><th>รูป</th><th>รหัส</th><th>ชื่อ</th><th>หน่วย</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th></tr></thead>
-        <tbody id="stock-tbody"></tbody>
-      </table></div></div>
-    </div>`;
-  renderStockTable(materials);
-}
-
-function renderStockTable(data) {
-  const tbody = document.getElementById('stock-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = data.map(m => {
-    const isLow = m.current_stock <= m.min_quantity;
-    const pct = m.min_quantity > 0 ? Math.min((m.current_stock / (m.min_quantity * 2)) * 100, 100) : 100;
-    const fillClass = isLow ? 'danger' : pct < 60 ? 'warn' : 'ok';
-    const imgHtml = m.image_url ? `<img src="${m.image_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;" />` : `<div style="width:36px;height:36px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>`;
-    return `<tr>
-      <td>${imgHtml}</td>
-      <td><code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;">${m.code}</code></td>
-      <td style="font-weight:500;">${m.name}</td>
-      <td>${m.unit}</td>
-      <td><strong style="color:${isLow?'var(--danger)':'var(--text)'};">${m.current_stock}</strong>
-        <div class="stock-bar"><div class="stock-fill ${fillClass}" style="width:${pct}%"></div></div></td>
-      <td>${m.min_quantity}</td>
-      <td><span class="badge ${isLow?'badge-danger':'badge-success'}">${isLow?'ใกล้หมด':'ปกติ'}</span></td>
-    </tr>`;
   }).join('');
 }
 
-function filterStock(val) {
-  let data = [...materials];
-  if (val === 'low') data = data.filter(m => m.current_stock <= m.min_quantity);
-  else if (val === 'desc') data.sort((a,b) => b.current_stock - a.current_stock);
-  else if (val === 'asc') data.sort((a,b) => a.current_stock - b.current_stock);
-  renderStockTable(data);
+function getAvailStock(code, excludeId=null){
+  const eq = equipments.find(e=>e.code===code); if(!eq) return 0;
+  let base = eq.qty||0;
+  if(excludeId){ const tx=issueTransactions.find(t=>t.id===excludeId); if(tx){ const it=(tx.items||[]).find(i=>i.code===code); if(it) base+=it.qty; } }
+  return base;
 }
 
-function downloadStockReport() {
-  const rows = [['รหัสสินค้า','ชื่อวัสดุ','หน่วย','คงเหลือ','ขั้นต่ำ','สถานะ']];
-  materials.forEach(m => rows.push([m.code, m.name, m.unit, m.current_stock, m.min_quantity, m.current_stock<=m.min_quantity?'ใกล้หมด':'ปกติ']));
-  downloadCSV(rows, 'stock-report.csv');
-}
+function adjIssue(i,d){ issueTxItems[i].qty=Math.max(1,(issueTxItems[i].qty||1)+d); renderIssueTxItems(); }
+function rmIssue(i){ issueTxItems.splice(i,1); renderIssueTxItems(); }
 
-// =================== RECEIVE REPORT ===================
-async function renderReceiveReport() {
-  const { data } = await supabase.from('receive_documents').select('*, receive_items(quantity, materials(name))').order('created_at', { ascending: false });
-  const el = document.getElementById('tab-content');
-  if (!data || data.length === 0) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">📊</div><p>ยังไม่มีข้อมูลรับเข้า</p></div></div>';
-    return;
+async function submitIssue(){
+  const date = document.getElementById('issue-date').value;
+  const requester = document.getElementById('issue-requester').value.trim();
+  const dept = document.getElementById('issue-dept').value.trim();
+  const note = document.getElementById('issue-note').value.trim();
+  const docNum = document.getElementById('issue-doc-num').textContent;
+  const editId = document.getElementById('issue-edit-id').value;
+  if(!date){ toast('กรุณาเลือกวันที่','error'); return; }
+  if(!requester){ toast('กรุณากรอกชื่อผู้เบิก','error'); return; }
+  if(!dept){ toast('กรุณากรอกหน่วยงาน','error'); return; }
+  if(!issueTxItems.length){ toast('กรุณาเลือกอุปกรณ์','error'); return; }
+  for(const item of issueTxItems){
+    const avail = getAvailStock(item.code, editId||null);
+    if(item.qty>avail){ toast(`${item.name}: มีคงเหลือเพียง ${avail} ${item.unit}`,'error'); return; }
   }
-  const byMonth = {};
-  let totalQty = 0, totalDocs = data.length;
-  data.forEach(d => {
-    const mo = new Date(d.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
-    if (!byMonth[mo]) byMonth[mo] = { docs: 0, qty: 0 };
-    byMonth[mo].docs++;
-    (d.receive_items||[]).forEach(i => { byMonth[mo].qty += i.quantity; totalQty += i.quantity; });
-  });
-  const maxQty = Math.max(...Object.values(byMonth).map(v => v.qty), 1);
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">รายการรับเข้าทั้งหมด</div><div class="stat-value">${totalDocs}</div></div>
-      <div class="stat-card"><div class="stat-label">จำนวนรวม</div><div class="stat-value">${totalQty}</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">สรุปรับเข้าแยกเดือน</div>
-        <button class="btn btn-outline btn-sm" onclick="downloadReceiveReport()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด
-        </button>
-      </div>
-      <div class="chart-container">
-        ${Object.entries(byMonth).map(([mo, v]) => `
-          <div class="chart-bar-row">
-            <div class="chart-label">${mo.substring(0,8)}</div>
-            <div class="chart-bar-wrap"><div class="chart-bar receive" style="width:${Math.round(v.qty/maxQty*100)}%">${v.qty}</div></div>
-            <div style="font-size:12px;color:var(--text-muted);min-width:50px;">${v.docs} เอกสาร</div>
-          </div>`).join('')}
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-title">รายละเอียด</div></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>เลขที่</th><th>วันที่</th><th>รายการ</th><th>จำนวนรวม</th><th>หมายเหตุ</th></tr></thead>
-        <tbody>${data.map(d => {
-          const qty = (d.receive_items||[]).reduce((s,i)=>s+i.quantity,0);
-          return `<tr>
-            <td><code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;">${d.doc_number}</code></td>
-            <td style="font-size:12px;">${new Date(d.created_at).toLocaleDateString('th-TH')}</td>
-            <td style="font-size:12px;">${(d.receive_items||[]).map(i=>i.materials?.name||'').join(', ')}</td>
-            <td><strong>${qty}</strong></td>
-            <td style="font-size:12px;color:var(--text-muted);">${d.note||'—'}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>`;
-}
+  const btn = document.getElementById('submit-issue-btn');
+  btn.innerHTML = '<span class="spinner"></span> กำลังบันทึก...'; btn.disabled = true;
 
-async function downloadReceiveReport() {
-  const { data } = await supabase.from('receive_documents').select('*, receive_items(quantity, materials(name,unit))').order('created_at', { ascending: false });
-  const rows = [['เลขที่เอกสาร','วันที่','วัสดุ','จำนวน','หน่วย','หมายเหตุ']];
-  (data||[]).forEach(d => {
-    (d.receive_items||[]).forEach(i => {
-      rows.push([d.doc_number, new Date(d.created_at).toLocaleDateString('th-TH'), i.materials?.name||'', i.quantity, i.materials?.unit||'', d.note||'']);
-    });
-  });
-  downloadCSV(rows, 'receive-report.csv');
-}
-
-// =================== WITHDRAW REPORT ===================
-async function renderWithdrawReport() {
-  const { data } = await supabase.from('withdrawal_documents').select('*, withdrawal_items(quantity, materials(name))').order('created_at', { ascending: false });
-  const el = document.getElementById('tab-content');
-  if (!data || data.length === 0) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">📊</div><p>ยังไม่มีข้อมูลเบิก-จ่าย</p></div></div>';
-    return;
-  }
-  const byMonth = {};
-  let totalQty = 0, totalDocs = data.length;
-  data.forEach(d => {
-    const mo = new Date(d.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
-    if (!byMonth[mo]) byMonth[mo] = { docs: 0, qty: 0 };
-    byMonth[mo].docs++;
-    (d.withdrawal_items||[]).forEach(i => { byMonth[mo].qty += i.quantity; totalQty += i.quantity; });
-  });
-  const maxQty = Math.max(...Object.values(byMonth).map(v => v.qty), 1);
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">รายการเบิกทั้งหมด</div><div class="stat-value">${totalDocs}</div></div>
-      <div class="stat-card"><div class="stat-label">จำนวนรวม</div><div class="stat-value">${totalQty}</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">สรุปเบิก-จ่ายแยกเดือน</div>
-        <button class="btn btn-outline btn-sm" onclick="downloadWithdrawReport()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ดาวน์โหลด
-        </button>
-      </div>
-      <div class="chart-container">
-        ${Object.entries(byMonth).map(([mo, v]) => `
-          <div class="chart-bar-row">
-            <div class="chart-label">${mo.substring(0,8)}</div>
-            <div class="chart-bar-wrap"><div class="chart-bar withdraw" style="width:${Math.round(v.qty/maxQty*100)}%">${v.qty}</div></div>
-            <div style="font-size:12px;color:var(--text-muted);min-width:50px;">${v.docs} เอกสาร</div>
-          </div>`).join('')}
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-title">รายละเอียด</div></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>เลขที่</th><th>วันที่</th><th>ผู้เบิก</th><th>หน่วยงาน</th><th>จำนวนรวม</th></tr></thead>
-        <tbody>${data.map(d => {
-          const qty = (d.withdrawal_items||[]).reduce((s,i)=>s+i.quantity,0);
-          return `<tr>
-            <td><code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;">${d.doc_number}</code></td>
-            <td style="font-size:12px;">${new Date(d.created_at).toLocaleDateString('th-TH')}</td>
-            <td style="font-weight:500;">${d.requester_name}</td>
-            <td>${d.department}</td>
-            <td><strong>${qty}</strong></td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>`;
-}
-
-async function downloadWithdrawReport() {
-  const { data } = await supabase.from('withdrawal_documents').select('*, withdrawal_items(quantity, materials(name,unit))').order('created_at', { ascending: false });
-  const rows = [['เลขที่เอกสาร','วันที่','ผู้เบิก','หน่วยงาน','วัสดุ','จำนวน','หน่วย']];
-  (data||[]).forEach(d => {
-    (d.withdrawal_items||[]).forEach(i => {
-      rows.push([d.doc_number, new Date(d.created_at).toLocaleDateString('th-TH'), d.requester_name, d.department, i.materials?.name||'', i.quantity, i.materials?.unit||'']);
-    });
-  });
-  downloadCSV(rows, 'withdraw-report.csv');
-}
-
-// =================== QR CODE ===================
-function openQR(targetField) {
-  document.getElementById('qr-modal').style.display = 'flex';
-  if (html5QrCode) { try { html5QrCode.stop(); } catch(e) {} }
-  html5QrCode = new Html5Qrcode('qr-reader');
-  html5QrCode.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    (text) => {
-      if (targetField === 'm-code') {
-        document.getElementById('m-code').value = text;
-      } else if (targetField === 'recv-qr') {
-        addReceiveRow(text);
-      } else if (targetField === 'wth-qr') {
-        addWithdrawRow(text);
+  if(!usingDemo){
+    try {
+      if(editId){
+        // คืนสต๊อกเก่า
+        const prev = issueTransactions.find(t=>t.id===editId);
+        if(prev) for(const it of (prev.items||[])){
+          const eq = equipments.find(e=>e.code===it.code);
+          if(eq) await sb.from('materials').update({current_stock: eq.qty + it.qty}).eq('id', eq.id);
+        }
+        // อัปเดต doc
+        await sb.from('issuing_documents').update({doc_number:docNum,date,requester_name:requester,department:dept,note}).eq('id',editId);
+        await sb.from('issuing_items').delete().eq('doc_id', editId);
+        // ตัดสต๊อกใหม่และ insert items
+        for(const it of issueTxItems){
+          const eq = equipments.find(e=>e.code===it.code);
+          const matId = eq?.id;
+          await sb.from('issuing_items').insert({doc_id:editId, material_id:matId, quantity:it.qty});
+          if(eq) await sb.from('materials').update({current_stock: Math.max(0, (eq.qty||0) - it.qty)}).eq('id', eq.id);
+        }
+      } else {
+        const { data: doc, error: docErr } = await sb.from('issuing_documents').insert({doc_number:docNum,date,requester_name:requester,department:dept,note}).select().single();
+        if(docErr) throw docErr;
+        for(const it of issueTxItems){
+          const eq = equipments.find(e=>e.code===it.code);
+          const matId = eq?.id;
+          await sb.from('issuing_items').insert({doc_id:doc.id, material_id:matId, quantity:it.qty});
+          if(eq) await sb.from('materials').update({current_stock: Math.max(0, (eq.qty||0) - it.qty)}).eq('id', eq.id);
+        }
       }
-      closeQR();
-    },
-    () => {}
-  ).catch(() => showToast('ไม่สามารถเปิดกล้องได้', 'error'));
+      await loadAll();
+      toast('บันทึกการเบิกสำเร็จ ✓','success');
+    } catch(e){ toast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+  } else {
+    const payload = {id:editId||('tmp_'+Date.now()),docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))};
+    if(editId){
+      const prev = issueTransactions.find(t=>t.id===editId);
+      if(prev)(prev.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty+=it.qty; });
+      issueTransactions = issueTransactions.filter(t=>t.id!==editId);
+    }
+    issueTransactions.push(payload);
+    payload.items.forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
+    renderAll();
+    toast('บันทึกการเบิกสำเร็จ ✓','success');
+  }
+  closeModal('modal-create-issue');
+  btn.innerHTML = 'บันทึกการเบิก'; btn.disabled = false;
 }
 
-function closeQR() {
-  if (html5QrCode) { try { html5QrCode.stop().then(() => html5QrCode.clear()); } catch(e) {} html5QrCode = null; }
-  document.getElementById('qr-modal').style.display = 'none';
+// ===== RECEIVE LIST =====
+function renderReceiveList(){
+  const wrap = document.getElementById('receive-list-wrap');
+  const sorted = [...receiveTransactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!sorted.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📥</div><div class="empty-text">ยังไม่มีรายการรับเข้า</div></div>`; return; }
+  wrap.innerHTML = `<div class="card"><div style="padding:0">${sorted.map(tx=>{
+    const total = (tx.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+    const summary = (tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    return `<div class="tx-item">
+      <div class="tx-avatar" style="background:linear-gradient(135deg,#eafaf0,#c3f0d0)">📥</div>
+      <div class="tx-info" onclick="viewDoc('receive','${tx.id}')">
+        <div class="tx-name">${tx.docNum}</div>
+        <div class="tx-sub">${fmtDate(tx.date)}${tx.note?' · '+tx.note:''}</div>
+        <div class="tx-sub">${summary}</div>
+        <div class="tx-actions">
+          <button class="btn btn-sm btn-outline" style="padding:3px 10px" onclick="event.stopPropagation();editReceive('${tx.id}')">✏️ แก้ไข</button>
+          <button class="btn btn-sm btn-danger" style="padding:3px 10px" onclick="event.stopPropagation();deleteReceive('${tx.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="tx-amount"><div class="tx-qty in">+${total}</div><div class="tx-date">ชิ้น</div></div>
+    </div>`;
+  }).join('')}</div></div>`;
 }
 
-// =================== UTILS ===================
-function changeQty(btn, delta) {
-  const inp = btn.closest('.qty-control').querySelector('.qty-input');
-  inp.value = Math.max(1, (parseFloat(inp.value) || 0) + delta);
+function openCreateReceive(){
+  editingReceiveId = null;
+  document.getElementById('modal-receive-title').textContent = 'สร้างรายการรับเข้า';
+  document.getElementById('receive-edit-id').value = '';
+  document.getElementById('receive-doc-num').textContent = genNum('RC');
+  document.getElementById('receive-date').value = today();
+  document.getElementById('receive-note').value = '';
+  receiveTxItems = []; renderReceiveTxItems(); openModal('modal-create-receive');
 }
 
-function genDocNumber(prefix) {
+function editReceive(id){
+  const tx = receiveTransactions.find(t=>t.id===id); if(!tx) return;
+  editingReceiveId = id;
+  document.getElementById('modal-receive-title').textContent = 'แก้ไขรายการรับเข้า';
+  document.getElementById('receive-edit-id').value = id;
+  document.getElementById('receive-doc-num').textContent = tx.docNum;
+  document.getElementById('receive-date').value = tx.date;
+  document.getElementById('receive-note').value = tx.note||'';
+  receiveTxItems = (tx.items||[]).map(i=>({...i}));
+  renderReceiveTxItems(); openModal('modal-create-receive');
+}
+
+async function deleteReceive(id){
+  if(!confirm('ลบรายการรับเข้านี้?\n(สต๊อกจะถูกปรับลด)')) return;
+  const tx = receiveTransactions.find(t=>t.id===id);
+  if(!usingDemo && tx){
+    for(const it of (tx.items||[])){
+      const eq = equipments.find(e=>e.code===it.code);
+      if(eq) await sb.from('materials').update({current_stock: Math.max(0, eq.qty - it.qty)}).eq('id', eq.id);
+    }
+    const { error } = await sb.from('receiving_documents').delete().eq('id', id);
+    if(error){ toast('ลบไม่สำเร็จ','error'); return; }
+    await loadAll();
+  } else {
+    if(tx)(tx.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
+    receiveTransactions = receiveTransactions.filter(t=>t.id!==id);
+    renderAll();
+  }
+  toast('ลบรายการรับเข้าแล้ว','error');
+}
+
+function renderReceiveTxItems(){
+  const el = document.getElementById('receive-items-list');
+  if(!receiveTxItems.length){ el.innerHTML=`<div class="empty-state" style="padding:20px"><div class="empty-sub">กดเลือกอุปกรณ์</div></div>`; return; }
+  el.innerHTML = receiveTxItems.map((item,i)=>`
+    <div class="checkout-item">
+      <div class="tx-avatar">${item.img?`<img src="${item.img}" alt="">`:''}</div>
+      <div class="checkout-item-name">
+        <div style="font-weight:500;font-size:13px">${item.name}</div>
+        <div style="font-size:11px;color:var(--ig-muted)">${item.code} · ${item.unit}</div>
+      </div>
+      <div class="checkout-item-qty">
+        <button class="qty-btn" onclick="adjReceive(${i},-1)">−</button>
+        <span class="qty-num">${item.qty}</span>
+        <button class="qty-btn" onclick="adjReceive(${i},1)">+</button>
+        <button class="qty-btn" onclick="rmReceive(${i})" style="color:var(--ig-red);border-color:var(--ig-red)">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function adjReceive(i,d){ receiveTxItems[i].qty=Math.max(1,(receiveTxItems[i].qty||1)+d); renderReceiveTxItems(); }
+function rmReceive(i){ receiveTxItems.splice(i,1); renderReceiveTxItems(); }
+
+async function submitReceive(){
+  const date = document.getElementById('receive-date').value;
+  const note = document.getElementById('receive-note').value.trim();
+  const docNum = document.getElementById('receive-doc-num').textContent;
+  const editId = document.getElementById('receive-edit-id').value;
+  if(!date){ toast('กรุณาเลือกวันที่','error'); return; }
+  if(!receiveTxItems.length){ toast('กรุณาเลือกอุปกรณ์','error'); return; }
+  const btn = document.getElementById('submit-receive-btn');
+  btn.innerHTML = '<span class="spinner"></span> กำลังบันทึก...'; btn.disabled = true;
+
+  if(!usingDemo){
+    try {
+      if(editId){
+        const prev = receiveTransactions.find(t=>t.id===editId);
+        if(prev) for(const it of (prev.items||[])){
+          const eq = equipments.find(e=>e.code===it.code);
+          if(eq) await sb.from('materials').update({current_stock: Math.max(0, eq.qty - it.qty)}).eq('id', eq.id);
+        }
+        await sb.from('receiving_documents').update({doc_number:docNum,date,note}).eq('id',editId);
+        await sb.from('receiving_items').delete().eq('doc_id', editId);
+        for(const it of receiveTxItems){
+          const eq = equipments.find(e=>e.code===it.code);
+          await sb.from('receiving_items').insert({doc_id:editId, material_id:eq?.id, quantity:it.qty});
+          if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
+        }
+      } else {
+        const { data: doc, error: docErr } = await sb.from('receiving_documents').insert({doc_number:docNum,date,note}).select().single();
+        if(docErr) throw docErr;
+        for(const it of receiveTxItems){
+          const eq = equipments.find(e=>e.code===it.code);
+          await sb.from('receiving_items').insert({doc_id:doc.id, material_id:eq?.id, quantity:it.qty});
+          if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
+        }
+      }
+      await loadAll();
+      toast('บันทึกการรับเข้าสำเร็จ ✓','success');
+    } catch(e){ toast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+  } else {
+    const payload = {id:editId||('tmp_'+Date.now()),docNum,date,note,items:receiveTxItems.map(i=>({...i}))};
+    if(editId){
+      const prev = receiveTransactions.find(t=>t.id===editId);
+      if(prev)(prev.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
+      receiveTransactions = receiveTransactions.filter(t=>t.id!==editId);
+    }
+    receiveTransactions.push(payload);
+    payload.items.forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty+=it.qty; });
+    renderAll();
+    toast('บันทึกการรับเข้าสำเร็จ ✓','success');
+  }
+  closeModal('modal-create-receive');
+  btn.innerHTML = 'บันทึกการรับเข้า'; btn.disabled = false;
+}
+
+// ===== PRODUCT PICKER =====
+function openProductPicker(target){
+  pickerTarget = target; pickerSelected = {};
+  const src = target==='issue' ? issueTxItems : receiveTxItems;
+  src.forEach(it=>{ pickerSelected[it.code]=it.qty; });
+  document.getElementById('picker-search').value = '';
+  renderPicker(''); openModal('modal-product-picker');
+}
+
+function renderPicker(f){
+  const list = document.getElementById('picker-list');
+  const filtered = equipments.filter(e=>e.name.toLowerCase().includes(f.toLowerCase())||e.code.toLowerCase().includes(f.toLowerCase()));
+  if(!filtered.length){ list.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-sub">ไม่พบอุปกรณ์</div></div>'; return; }
+  list.innerHTML = filtered.map(eq=>{
+    const sel = pickerSelected[eq.code]||0;
+    const codeEsc = eq.code.replace(/'/g,"\\'");
+    return `<div class="product-card ${sel>0?'selected':''}" id="pcard-${eq.code}" onclick="togglePickerCard('${codeEsc}')">
+      <div class="product-card-img">${eq.img?`<img src="${eq.img}" alt="">`:'<span style="font-size:22px">📦</span>'}</div>
+      <div class="product-card-info">
+        <div class="product-card-name">${eq.name}</div>
+        <div class="product-card-code">${eq.code} · คงเหลือ: ${eq.qty} ${eq.unit}</div>
+      </div>
+      <div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px">
+        <button class="qty-btn" onclick="adjPicker('${codeEsc}',-1)">−</button>
+        <input type="number" min="0" id="pinput-${eq.code}" value="${sel}"
+          style="width:48px;text-align:center;border:1.5px solid var(--ig-border);border-radius:6px;padding:3px 4px;font-size:14px;font-weight:500;font-family:inherit"
+          onclick="event.stopPropagation()" oninput="setPicker('${codeEsc}',this.value)" onblur="cleanPicker('${codeEsc}',this)">
+        <button class="qty-btn" onclick="adjPicker('${codeEsc}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _updatePickerCard(code){
+  const sel = pickerSelected[code]||0;
+  const card = document.getElementById('pcard-'+code);
+  const inp = document.getElementById('pinput-'+code);
+  if(card) card.className = 'product-card'+(sel>0?' selected':'');
+  if(inp && inp!==document.activeElement) inp.value = sel;
+}
+function togglePickerCard(c){ if(pickerSelected[c]) delete pickerSelected[c]; else pickerSelected[c]=1; _updatePickerCard(c); }
+function adjPicker(c,d){ const v=Math.max(0,(pickerSelected[c]||0)+d); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; _updatePickerCard(c); }
+function setPicker(c,val){ const v=parseInt(val)||0; if(v<=0) delete pickerSelected[c]; else pickerSelected[c]=v; const card=document.getElementById('pcard-'+c); if(card) card.className='product-card'+(v>0?' selected':''); }
+function cleanPicker(c,inp){ const v=Math.max(0,parseInt(inp.value)||0); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; inp.value=v; _updatePickerCard(c); }
+function filterPicker(v){ renderPicker(v); }
+function confirmPicker(){
+  const items = Object.entries(pickerSelected).filter(([,q])=>q>0).map(([c,q])=>{ const eq=equipments.find(e=>e.code===c); return eq?{code:eq.code,name:eq.name,qty:q,unit:eq.unit,img:eq.img||''}:null; }).filter(Boolean);
+  if(pickerTarget==='issue'){ issueTxItems=items; renderIssueTxItems(); }
+  else { receiveTxItems=items; renderReceiveTxItems(); }
+  closeModal('modal-product-picker');
+}
+
+// ===== DOC DETAIL =====
+function viewDoc(type, id){
+  const tx = type==='issue' ? issueTransactions.find(t=>t.id===id) : receiveTransactions.find(t=>t.id===id); if(!tx) return;
+  document.getElementById('doc-detail-title').textContent = type==='issue' ? `เบิก: ${tx.docNum}` : `รับเข้า: ${tx.docNum}`;
+  const total = (tx.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+  document.getElementById('doc-detail-body').innerHTML = `
+    <table class="detail-table" style="margin-bottom:14px">
+      <tr><td style="color:var(--ig-muted);width:90px">เลขที่</td><td style="font-weight:600;color:var(--ig-blue)">${tx.docNum}</td></tr>
+      <tr><td style="color:var(--ig-muted)">วันที่</td><td>${fmtDate(tx.date)}</td></tr>
+      ${type==='issue'?`<tr><td style="color:var(--ig-muted)">ผู้เบิก</td><td>${tx.requester}</td></tr><tr><td style="color:var(--ig-muted)">หน่วยงาน</td><td>${tx.dept||'-'}</td></tr>`:''}
+      <tr><td style="color:var(--ig-muted)">หมายเหตุ</td><td>${tx.note||'-'}</td></tr>
+    </table>
+    <div style="font-size:12px;font-weight:600;color:var(--ig-muted);margin-bottom:10px">รายการ</div>
+    ${(tx.items||[]).map(it=>{ const eq=equipments.find(e=>e.code===it.code);
+      return `<div class="checkout-item">
+        <div class="tx-avatar">${eq?.img?`<img src="${eq.img}" alt="">`:type==='issue'?'📤':'📥'}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:500">${it.name}</div><div style="font-size:11px;color:var(--ig-muted)">${it.code} · ${it.unit}</div></div>
+        <div class="tx-qty ${type==='issue'?'out':'in'}">${type==='issue'?'-':'+'}${it.qty}</div>
+      </div>`;
+    }).join('')}
+    <div style="padding-top:10px;text-align:right;font-size:13px;color:var(--ig-muted)">รวม: <strong style="font-size:16px;color:var(--ig-text)">${total}</strong> ชิ้น</div>`;
+  openModal('modal-doc-detail');
+}
+
+// ===== QR =====
+function openQR(target){ qrTarget=target; openModal('modal-qr'); startQR(); }
+async function startQR(){
+  try { qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); document.getElementById('qr-video').srcObject=qrStream; }
+  catch(e){ toast('ไม่สามารถเปิดกล้องได้','error'); }
+}
+function closeQR(){ if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; } closeModal('modal-qr'); }
+function manualQRInput(){
+  const val = document.getElementById('qr-manual-input').value.trim(); if(!val) return;
+  const eq = equipments.find(e=>e.code===val);
+  if(eq){
+    const t = qrTarget||'issue', items = t==='issue' ? issueTxItems : receiveTxItems;
+    if(!items.find(i=>i.code===eq.code)) items.push({code:eq.code,name:eq.name,qty:1,unit:eq.unit,img:eq.img||''});
+    if(t==='issue') renderIssueTxItems(); else renderReceiveTxItems();
+    toast(`เพิ่ม ${eq.name} แล้ว`,'success');
+  } else { toast('ไม่พบรหัสอุปกรณ์','error'); }
+  document.getElementById('qr-manual-input').value = ''; closeQR();
+}
+
+// ===== STOCK REPORT =====
+function renderStockReport(){ filterStock('all', document.querySelector('#page-stock .filter-chip')); }
+function filterStock(type, btn){
+  document.querySelectorAll('#page-stock .filter-chip').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  let items = [...equipments];
+  if(type==='desc') items.sort((a,b)=>b.qty-a.qty);
+  else if(type==='asc') items.sort((a,b)=>a.qty-b.qty);
+  else if(type==='low') items = items.filter(e=>e.qty<=e.minQty);
+  const list = document.getElementById('stock-list');
+  if(!items.length){ list.innerHTML='<div class="empty-state"><div class="empty-text">ไม่พบรายการ</div></div>'; return; }
+  list.innerHTML = items.map(eq=>{
+    const isLow = eq.qty<=eq.minQty;
+    const pct = eq.minQty>0 ? Math.min(100,(eq.qty/(eq.minQty*3))*100) : Math.min(100,eq.qty);
+    return `<div class="stock-card">
+      <div class="stock-card-img">${eq.img?`<img src="${eq.img}" alt="">`:'<span style="font-size:24px">📦</span>'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+          <span style="font-weight:500;font-size:14px">${eq.name}</span>
+          ${isLow?'<span class="badge badge-danger" style="font-size:10px">⚠️ ใกล้หมด</span>':''}
+        </div>
+        <div style="font-size:11px;color:var(--ig-muted);margin-bottom:5px">${eq.code}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${isLow?'var(--ig-red)':'var(--ig-green)'}"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px">
+          <span style="color:var(--ig-muted)">ขั้นต่ำ: ${eq.minQty} ${eq.unit}</span>
+          <span style="font-weight:700;font-size:14px;color:${isLow?'var(--ig-red)':'var(--ig-text)'}">${eq.qty} ${eq.unit}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== REPORTS =====
+const MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function changeMonth(type,d){
+  if(type==='issue'){ issueReportMonth=new Date(issueReportMonth.getFullYear(),issueReportMonth.getMonth()+d,1); renderIssueReport(); }
+  else { receiveReportMonth=new Date(receiveReportMonth.getFullYear(),receiveReportMonth.getMonth()+d,1); renderReceiveReport(); }
+}
+
+function renderIssueReport(){
+  const m = issueReportMonth;
+  document.getElementById('issue-report-month').textContent = `${MONTHS[m.getMonth()]} ${m.getFullYear()+543}`;
+  const filtered = issueTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
+  document.getElementById('ir-times').textContent = filtered.length;
+  document.getElementById('ir-items').textContent = filtered.reduce((s,tx)=>s+(tx.items?.length||0),0);
+  document.getElementById('ir-units').textContent = filtered.reduce((s,tx)=>s+(tx.items||[]).reduce((a,i)=>a+(i.qty||0),0),0);
+  const days = new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+  const labels = Array.from({length:days},(_,i)=>i+1);
+  const data = labels.map(d=>filtered.filter(tx=>new Date(tx.date).getDate()===d).reduce((s,tx)=>s+(tx.items||[]).reduce((a,i)=>a+(i.qty||0),0),0));
+  renderChart('issue-chart',labels,data,'จำนวนเบิก','#ed4956',(c)=>issueChart=c,issueChart);
+  document.getElementById('issue-report-list').innerHTML = !filtered.length
+    ? '<div class="empty-state" style="padding:30px"><div class="empty-text">ไม่มีรายการในเดือนนี้</div></div>'
+    : filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(tx=>`
+      <div class="tx-item">
+        <div class="tx-avatar" style="font-size:16px">📤</div>
+        <div class="tx-info">
+          <div class="tx-name">${tx.requester||'-'} <span style="color:var(--ig-muted);font-size:11px">${tx.dept||''}</span></div>
+          <div class="tx-sub">${tx.docNum} · ${fmtDate(tx.date)}</div>
+          <div class="tx-sub">${(tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</div>
+        </div>
+        <div class="tx-amount"><div class="tx-qty out">-${(tx.items||[]).reduce((s,i)=>s+(i.qty||0),0)}</div><div class="tx-date">ชิ้น</div></div>
+      </div>`).join('');
+}
+
+function renderReceiveReport(){
+  const m = receiveReportMonth;
+  document.getElementById('receive-report-month').textContent = `${MONTHS[m.getMonth()]} ${m.getFullYear()+543}`;
+  const filtered = receiveTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
+  document.getElementById('rr-times').textContent = filtered.length;
+  document.getElementById('rr-items').textContent = filtered.reduce((s,tx)=>s+(tx.items?.length||0),0);
+  document.getElementById('rr-units').textContent = filtered.reduce((s,tx)=>s+(tx.items||[]).reduce((a,i)=>a+(i.qty||0),0),0);
+  const days = new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+  const labels = Array.from({length:days},(_,i)=>i+1);
+  const data = labels.map(d=>filtered.filter(tx=>new Date(tx.date).getDate()===d).reduce((s,tx)=>s+(tx.items||[]).reduce((a,i)=>a+(i.qty||0),0),0));
+  renderChart('receive-chart',labels,data,'จำนวนรับเข้า','#58c322',(c)=>receiveChart=c,receiveChart);
+  document.getElementById('receive-report-list').innerHTML = !filtered.length
+    ? '<div class="empty-state" style="padding:30px"><div class="empty-text">ไม่มีรายการในเดือนนี้</div></div>'
+    : filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(tx=>`
+      <div class="tx-item">
+        <div class="tx-avatar" style="font-size:16px">📥</div>
+        <div class="tx-info">
+          <div class="tx-name">${tx.docNum}</div>
+          <div class="tx-sub">${fmtDate(tx.date)}${tx.note?' · '+tx.note:''}</div>
+          <div class="tx-sub">${(tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</div>
+        </div>
+        <div class="tx-amount"><div class="tx-qty in">+${(tx.items||[]).reduce((s,i)=>s+(i.qty||0),0)}</div><div class="tx-date">ชิ้น</div></div>
+      </div>`).join('');
+}
+
+function renderChart(id,labels,data,label,color,setter,prev){
+  const c = document.getElementById(id); if(!c) return;
+  if(prev) prev.destroy();
+  setter(new Chart(c,{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:color+'66',borderColor:color,borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f5f5f5'},ticks:{font:{size:10},stepSize:1}}}}}));
+}
+
+// ===== EXPORT =====
+function exportStock(){
+  const rows = [['รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
+  equipments.forEach(eq=>rows.push([eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
+  dlCSV(rows,'stock_report.csv');
+}
+function exportIssueReport(){
+  const m = issueReportMonth;
+  const filtered = issueTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
+  const rows = [['เลขที่เอกสาร','วันที่','ผู้เบิก','หน่วยงาน','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
+  filtered.forEach(tx=>(tx.items||[]).forEach(it=>rows.push([tx.docNum,tx.date,tx.requester,tx.dept||'',it.code,it.name,it.qty,it.unit,tx.note||''])));
+  dlCSV(rows,`issue_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.csv`);
+}
+function exportReceiveReport(){
+  const m = receiveReportMonth;
+  const filtered = receiveTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
+  const rows = [['เลขที่เอกสาร','วันที่','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
+  filtered.forEach(tx=>(tx.items||[]).forEach(it=>rows.push([tx.docNum,tx.date,it.code,it.name,it.qty,it.unit,tx.note||''])));
+  dlCSV(rows,`receive_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.csv`);
+}
+function dlCSV(rows,fn){
+  const bom='\uFEFF';
+  const csv=bom+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=fn; a.click(); toast('ดาวน์โหลดแล้ว ✓','success');
+}
+
+// ===== LOW STOCK =====
+function checkLowStock(){
+  const low = equipments.filter(e=>e.qty<=e.minQty);
+  const b = document.getElementById('alert-badge');
+  b.style.display = low.length ? 'flex' : 'none';
+  if(low.length) b.textContent = low.length;
+}
+function showLowStockAlert(){
+  const low = equipments.filter(e=>e.qty<=e.minQty);
+  if(!low.length){ toast('ไม่มีอุปกรณ์ใกล้หมด 🎉','success'); return; }
+  alert(`⚠️ อุปกรณ์ใกล้หมด ${low.length} รายการ:\n`+low.map(e=>`• ${e.name}: ${e.qty} ${e.unit} (ขั้นต่ำ ${e.minQty})`).join('\n'));
+}
+
+// ===== NAV =====
+function navigate(tab,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  btn.classList.add('active'); window.scrollTo(0,0);
+}
+function goReport(tab){
+  closeModal('modal-reports-tab');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  document.querySelectorAll('.nav-item')[4].classList.add('active');
+}
+
+// ===== MODAL =====
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m){ m.classList.add('hidden'); if(m.id==='modal-qr') closeQR(); } });
+});
+
+// ===== TOAST =====
+function toast(msg,type=''){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className=`toast ${type}`; t.textContent=msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),2800);
+}
+
+// ===== HELPERS =====
+function genNum(prefix){
   const now = new Date();
-  const yy = now.getFullYear().toString().slice(-2);
+  const yy = String(now.getFullYear()).slice(-2);
   const mm = String(now.getMonth()+1).padStart(2,'0');
   const dd = String(now.getDate()).padStart(2,'0');
-  const rnd = String(Math.floor(Math.random()*9000)+1000);
-  return `${prefix}-${yy}${mm}${dd}-${rnd}`;
+  const src = prefix==='IS' ? issueTransactions : receiveTransactions;
+  const key = `${prefix}-${yy}${mm}${dd}`;
+  const cnt = src.filter(r=>r.docNum.startsWith(key)).length;
+  return `${key}-${String(cnt+1).padStart(3,'0')}`;
+}
+function fmtDate(s){
+  if(!s) return '-';
+  const d = new Date(s+'T00:00:00');
+  return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()+543}`;
 }
 
-function downloadCSV(rows, filename) {
-  const bom = '\uFEFF';
-  const csv = bom + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-}
-
-let toastTimer;
-function showToast(msg, type) {
-  clearTimeout(toastTimer);
-  const old = document.querySelector('.toast');
-  if (old) old.remove();
-  const t = document.createElement('div');
-  t.className = 'toast' + (type === 'error' ? ' error' : '');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  toastTimer = setTimeout(() => t.remove(), 3000);
-}
+// ===== START =====
+init();
 </script>
 </body>
 </html>
