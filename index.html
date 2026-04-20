@@ -21,9 +21,12 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
 .conn-dot.on{background:var(--ig-green)}
 .conn-label{font-size:11px;color:var(--ig-muted)}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--ig-white);border-top:1px solid var(--ig-border);display:flex;justify-content:space-around;align-items:flex-end;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;transition:all .2s;color:var(--ig-muted);font-size:10px;font-weight:400;white-space:nowrap;background:none;border:none;flex:1}
-.nav-item.active{color:var(--ig-text);font-weight:500}
-.nav-item svg{width:22px;height:22px}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 8px;transition:all .2s;color:var(--ig-muted);font-size:10px;font-weight:400;white-space:nowrap;background:none;border:none;flex:1}
+.nav-item.active{color:var(--ig-blue);font-weight:600;transform:translateY(-2px)}
+.nav-item.active svg{stroke:var(--ig-blue);filter:drop-shadow(0 0 5px rgba(0,149,246,.4))}
+.nav-item svg{width:22px;height:22px;transition:all .2s}
+.nav-item .nav-dot{width:4px;height:4px;border-radius:50%;background:transparent;transition:background .2s}
+.nav-item.active .nav-dot{background:var(--ig-blue)}
 .nav-item-issue{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:all .2s;white-space:nowrap;background:none;border:none;flex:1;position:relative;top:-14px}
 .nav-item-issue .nav-issue-circle{width:54px;height:54px;border-radius:50%;background:var(--ig-gradient-btn);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(131,58,180,.45);transition:all .2s}
 .nav-item-issue:active .nav-issue-circle,.nav-item-issue.active .nav-issue-circle{transform:scale(0.93);box-shadow:0 2px 8px rgba(131,58,180,.35)}
@@ -269,10 +272,10 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
 
 <nav class="bottom-nav">
   <button class="nav-item active" onclick="navigate('equipment',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>หน้าหลัก
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>หน้าหลัก<div class="nav-dot"></div>
   </button>
   <button class="nav-item" onclick="navigate('receive',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>รับเข้า
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>รับเข้า<div class="nav-dot"></div>
   </button>
   <button class="nav-item-issue" id="nav-issue-btn" onclick="navigateIssue(this)">
     <div class="nav-issue-circle">
@@ -281,10 +284,10 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
     <span class="nav-issue-label">เบิก-จ่าย</span>
   </button>
   <button class="nav-item" onclick="navigate('stock',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>สต๊อก
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>สต๊อก<div class="nav-dot"></div>
   </button>
   <button class="nav-item" onclick="openModal('modal-reports-tab')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>รายงาน
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>รายงาน<div class="nav-dot"></div>
   </button>
 </nav>
 
