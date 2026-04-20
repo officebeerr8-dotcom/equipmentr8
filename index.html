@@ -20,10 +20,16 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
 .conn-dot{width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block;margin-right:4px;transition:background .4s}
 .conn-dot.on{background:var(--ig-green)}
 .conn-label{font-size:11px;color:var(--ig-muted)}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--ig-white);border-top:1px solid var(--ig-border);display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--ig-white);border-top:1px solid var(--ig-border);display:flex;justify-content:space-around;align-items:flex-end;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;transition:all .2s;color:var(--ig-muted);font-size:10px;font-weight:400;white-space:nowrap;background:none;border:none;flex:1}
 .nav-item.active{color:var(--ig-text);font-weight:500}
 .nav-item svg{width:22px;height:22px}
+.nav-item-issue{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:all .2s;white-space:nowrap;background:none;border:none;flex:1;position:relative;top:-14px}
+.nav-item-issue .nav-issue-circle{width:54px;height:54px;border-radius:50%;background:var(--ig-gradient-btn);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(131,58,180,.45);transition:all .2s}
+.nav-item-issue:active .nav-issue-circle,.nav-item-issue.active .nav-issue-circle{transform:scale(0.93);box-shadow:0 2px 8px rgba(131,58,180,.35)}
+.nav-item-issue svg{width:26px;height:26px;color:#fff}
+.nav-item-issue .nav-issue-label{font-size:10px;font-weight:600;color:var(--ig-text);margin-top:2px}
+.nav-item-issue.active .nav-issue-label{background:var(--ig-gradient-btn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .main-content{max-width:640px;margin:0 auto;padding:16px 16px 90px}
 .page{display:none}.page.active{display:block}
 .card{background:var(--ig-white);border:1px solid var(--ig-border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
@@ -265,11 +271,14 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
   <button class="nav-item active" onclick="navigate('equipment',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>หน้าหลัก
   </button>
-  <button class="nav-item" onclick="navigate('issue',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>เบิก-จ่าย
-  </button>
   <button class="nav-item" onclick="navigate('receive',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>รับเข้า
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>รับเข้า
+  </button>
+  <button class="nav-item-issue" id="nav-issue-btn" onclick="navigateIssue(this)">
+    <div class="nav-issue-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </div>
+    <span class="nav-issue-label">เบิก-จ่าย</span>
   </button>
   <button class="nav-item" onclick="navigate('stock',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>สต๊อก
@@ -1275,9 +1284,18 @@ function showLowStockAlert(){
 }
 
 // ===== NAV =====
+function navigateIssue(btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-issue').classList.add('active');
+  btn.classList.add('active'); window.scrollTo(0,0);
+}
+
 function navigate(tab,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
   document.getElementById(`page-${tab}`).classList.add('active');
   btn.classList.add('active'); window.scrollTo(0,0);
 }
