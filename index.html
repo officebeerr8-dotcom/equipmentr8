@@ -183,6 +183,10 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>เพิ่มอุปกรณ์
       </button>
     </div>
+    <div style="position:relative;margin-bottom:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ig-muted);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="equip-search" class="form-control" placeholder="ค้นหาอุปกรณ์ รหัส หรือชื่อ..." style="padding-left:38px" oninput="renderEquip()">
+    </div>
     <div class="product-grid" id="product-grid"></div>
     <div class="empty-state" id="equipment-empty" style="display:none">
       <div class="empty-icon">📦</div><div class="empty-text">ยังไม่มีอุปกรณ์สำนักงาน</div>
@@ -591,13 +595,18 @@ function renderAll(){
 function renderEquip(){
   const grid = document.getElementById('product-grid');
   const empty = document.getElementById('equipment-empty');
+  const q = (document.getElementById('equip-search')?.value || '').toLowerCase().trim();
+  const filtered = q ? equipments.filter(e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)) : equipments;
   const total = equipments.length, low = equipments.filter(e=>e.qty<=e.minQty).length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-low').textContent = low;
   document.getElementById('stat-ok').textContent = total - low;
-  if(!total){ grid.style.display='none'; empty.style.display='block'; }
-  else { grid.style.display='grid'; empty.style.display='none'; }
-  grid.innerHTML = equipments.map(eq=>`
+  if(!filtered.length){ grid.style.display='none'; empty.style.display='block';
+    document.getElementById('equipment-empty').innerHTML = q
+      ? `<div class="empty-icon">🔍</div><div class="empty-text">ไม่พบ "${q}"</div><div class="empty-sub">ลองค้นหาด้วยคำอื่น</div>`
+      : `<div class="empty-icon">📦</div><div class="empty-text">ยังไม่มีอุปกรณ์สำนักงาน</div><div class="empty-sub">กดปุ่ม "เพิ่มอุปกรณ์" เพื่อเริ่มต้น</div>`;
+  } else { grid.style.display='grid'; empty.style.display='none'; }
+  grid.innerHTML = filtered.map(eq=>`
     <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
       ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
         `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${eq.name}</div></div>`}
