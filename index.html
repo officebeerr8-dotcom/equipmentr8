@@ -494,6 +494,34 @@ async function init(){
 
 function today(){ return new Date().toISOString().split('T')[0]; }
 
+// ===== THAI ERROR TRANSLATOR =====
+function thaiError(e){
+  const msg = (e?.message || e?.error_description || String(e)).toLowerCase();
+  if(msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('unique_violation'))
+    return 'ข้อมูลซ้ำ: รหัสหรือชื่อนี้มีอยู่แล้วในระบบ';
+  if(msg.includes('foreign key') || msg.includes('foreign_key_violation'))
+    return 'ไม่สามารถลบได้: ข้อมูลนี้ถูกใช้งานอยู่';
+  if(msg.includes('not null') || msg.includes('null value'))
+    return 'กรุณากรอกข้อมูลให้ครบถ้วน';
+  if(msg.includes('check constraint') || msg.includes('check_violation'))
+    return 'ข้อมูลไม่ถูกต้องตามเงื่อนไขที่กำหนด';
+  if(msg.includes('permission denied') || msg.includes('insufficient_privilege'))
+    return 'ไม่มีสิทธิ์ดำเนินการนี้';
+  if(msg.includes('jwt') || msg.includes('invalid api key') || msg.includes('apikey'))
+    return 'API Key ไม่ถูกต้อง กรุณาตรวจสอบการตั้งค่า';
+  if(msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network'))
+    return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต';
+  if(msg.includes('timeout'))
+    return 'การเชื่อมต่อหมดเวลา กรุณาลองใหม่';
+  if(msg.includes('does not exist') || msg.includes('relation') || msg.includes('undefined_table'))
+    return 'ไม่พบตารางข้อมูล กรุณาตรวจสอบฐานข้อมูล';
+  if(msg.includes('value too long') || msg.includes('string_data_right_truncation'))
+    return 'ข้อมูลยาวเกินไป กรุณากรอกให้สั้นลง';
+  if(msg.includes('row-level security') || msg.includes('rls'))
+    return 'ไม่มีสิทธิ์เข้าถึงข้อมูลนี้ (RLS)';
+  return 'เกิดข้อผิดพลาด: ' + (e?.message || String(e));
+}
+
 // ===== SUPABASE CONNECT =====
 async function connectSupabase(url, key){
   try {
@@ -503,7 +531,7 @@ async function connectSupabase(url, key){
     usingDemo = false;
   } catch(e){
     setConn(false);
-    toast('เชื่อมต่อไม่ได้: ' + e.message, 'error');
+    toast(thaiError(e), 'error');
   }
 }
 
@@ -624,7 +652,7 @@ async function deleteEquipment(id){
   if(!confirm('ลบอุปกรณ์นี้?')) return;
   if(!usingDemo){
     const { error } = await sb.from('materials').delete().eq('id', id);
-    if(error){ toast('ลบไม่สำเร็จ: '+error.message,'error'); return; }
+    if(error){ toast(thaiError(error),'error'); return; }
   } else {
     const i = equipments.findIndex(e=>e.id===id); if(i>=0) equipments.splice(i,1);
   }
@@ -653,7 +681,7 @@ async function saveEquipment(){
     } else {
       ({ error } = await sb.from('materials').insert({ ...payload, current_stock: 0 }));
     }
-    if(error){ toast('บันทึกไม่สำเร็จ: '+error.message,'error'); btn.innerHTML='บันทึก'; btn.disabled=false; return; }
+    if(error){ toast(thaiError(error),'error'); btn.innerHTML='บันทึก'; btn.disabled=false; return; }
     await reloadEquip();
   } else {
     if(editId){ const i=equipments.findIndex(e=>e.id===editId); if(i>=0) equipments[i]={...equipments[i],code,name,unit,minQty,img}; }
@@ -858,7 +886,7 @@ async function submitIssue(){
       }
       await loadAll();
       toast('บันทึกการเบิกสำเร็จ ✓','success');
-    } catch(e){ toast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+    } catch(e){ toast(thaiError(e),'error'); }
   } else {
     const payload = {id:editId||('tmp_'+Date.now()),docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))};
     if(editId){
@@ -998,7 +1026,7 @@ async function submitReceive(){
       }
       await loadAll();
       toast('บันทึกการรับเข้าสำเร็จ ✓','success');
-    } catch(e){ toast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+    } catch(e){ toast(thaiError(e),'error'); }
   } else {
     const payload = {id:editId||('tmp_'+Date.now()),docNum,date,note,items:receiveTxItems.map(i=>({...i}))};
     if(editId){
