@@ -286,7 +286,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:var(--ig-bg);color:var(
   <button class="nav-item" onclick="navigate('stock',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>สต๊อก<div class="nav-dot"></div>
   </button>
-  <button class="nav-item" onclick="openModal('modal-reports-tab')">
+  <button class="nav-item" id="nav-report-btn" onclick="openReportTab(this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>รายงาน<div class="nav-dot"></div>
   </button>
 </nav>
@@ -1287,6 +1287,12 @@ function showLowStockAlert(){
 }
 
 // ===== NAV =====
+function openReportTab(btn){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  openModal('modal-reports-tab');
+}
 function navigateIssue(btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
@@ -1306,8 +1312,9 @@ function goReport(tab){
   closeModal('modal-reports-tab');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
   document.getElementById(`page-${tab}`).classList.add('active');
-  document.querySelectorAll('.nav-item')[4].classList.add('active');
+  document.getElementById('nav-report-btn').classList.add('active');
 }
 
 // ===== MODAL =====
