@@ -644,9 +644,11 @@ function thaiError(e){
 async function connectSupabase(url, key){
   try {
     sb = window.supabase.createClient(url, key);
+    // ล้าง demo data ก่อนโหลดจริง
+    equipments=[]; issueTransactions=[]; receiveTransactions=[];
+    usingDemo = false;
     await loadAll();
     setConn(true);
-    usingDemo = false;
   } catch(e){
     setConn(false);
     toast(thaiError(e), 'error');
