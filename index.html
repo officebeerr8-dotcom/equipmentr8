@@ -601,13 +601,18 @@ const DEMO_REC=[
 async function init(){
   document.getElementById('issue-date').value = today();
   document.getElementById('receive-date').value = today();
-  // load demo first
-  equipments = JSON.parse(JSON.stringify(DEMO_EQ));
-  issueTransactions = JSON.parse(JSON.stringify(DEMO_ISS));
-  receiveTransactions = JSON.parse(JSON.stringify(DEMO_REC));
-  usingDemo = true; setConn(false);
+  equipments=[]; issueTransactions=[]; receiveTransactions=[];
+  usingDemo = false;
   renderAll();
-  if(SB_URL && SB_KEY) await connectSupabase(SB_URL, SB_KEY);
+  if(SB_URL && SB_KEY){
+    await connectSupabase(SB_URL, SB_KEY);
+  } else {
+    // ไม่มี config — โหลด demo
+    equipments = JSON.parse(JSON.stringify(DEMO_EQ));
+    issueTransactions = JSON.parse(JSON.stringify(DEMO_ISS));
+    receiveTransactions = JSON.parse(JSON.stringify(DEMO_REC));
+    usingDemo = true; setConn(false); renderAll();
+  }
 }
 
 function today(){ return new Date().toISOString().split('T')[0]; }
