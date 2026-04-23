@@ -861,7 +861,7 @@ function previewEquipImgUrl(url){
 
 async function reloadEquip(){
   if(!usingDemo){
-    const { data } = await sb.from('materials').select('*').order('created_at');
+    const { data } = await sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('created_at');
     equipments = (data||[]).map(mapMaterial);
   }
   renderEquip(); renderStockReport(); checkLowStock();
