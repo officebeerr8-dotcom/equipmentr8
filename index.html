@@ -672,7 +672,7 @@ function setConn(ok){
 async function loadAll(){
   if(!sb) return;
   const [eqRes, issRes, recRes] = await Promise.all([
-    sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('created_at'),
+    sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('code'),
     sb.from('issuing_documents').select('*, issuing_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
     sb.from('receiving_documents').select('*, receiving_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
   ]);
@@ -878,7 +878,7 @@ function previewEquipImgUrl(url){
 
 async function reloadEquip(){
   if(!usingDemo){
-    const { data } = await sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('created_at');
+    const { data } = await sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('code');
     equipments = (data||[]).map(mapMaterial);
   }
   renderEquip(); renderStockReport(); checkLowStock();
