@@ -836,20 +836,37 @@ function resizeImageDataUrl(dataUrl, maxSize, quality, cb){
     c.getContext('2d').drawImage(img,0,0,w,h);
     cb(c.toDataURL('image/jpeg', quality));
   };
+  img.onerror = () => cb(null);
   img.src = dataUrl;
 }
 
 function previewEquipImg(input){
   const file = input.files[0]; if(!file) return;
+  // แสดง loading ทันที
+  document.getElementById('equip-img-preview').innerHTML =
+    `<div style="padding:16px;color:var(--ig-muted);font-size:13px">⏳ กำลังโหลดรูป...</div>`;
   const r = new FileReader();
   r.onload = e => {
-    resizeImageDataUrl(e.target.result, 800, 0.82, resized => {
+    resizeImageDataUrl(e.target.result, 600, 0.75, resized => {
+      if(!resized){ toast('ไม่สามารถโหลดรูปได้','error'); resetImgPreview(); return; }
+      // ตรวจขนาด base64 (Supabase text limit ~1MB)
+      if(resized.length > 900000){
+        resizeImageDataUrl(e.target.result, 400, 0.65, resized2 => {
+          if(!resized2){ toast('รูปใหญ่เกินไป','error'); resetImgPreview(); return; }
+          document.getElementById('equip-img-data').value = resized2;
+          document.getElementById('equip-img-preview').innerHTML =
+            `<img src="${resized2}" style="max-height:150px;border-radius:8px"><p style="font-size:11px;color:var(--ig-muted);margin-top:4px">✓ เลือกรูปแล้ว (บีบอัดแล้ว)</p>`;
+          document.getElementById('equip-img-url').value = '';
+        });
+        return;
+      }
       document.getElementById('equip-img-data').value = resized;
       document.getElementById('equip-img-preview').innerHTML =
         `<img src="${resized}" style="max-height:150px;border-radius:8px"><p style="font-size:11px;color:var(--ig-muted);margin-top:4px">✓ เลือกรูปแล้ว</p>`;
       document.getElementById('equip-img-url').value = '';
     });
   };
+  r.onerror = () => { toast('อ่านไฟล์ไม่ได้','error'); resetImgPreview(); };
   r.readAsDataURL(file);
 }
 
