@@ -705,7 +705,8 @@ function renderEquip(){
   const grid = document.getElementById('product-grid');
   const empty = document.getElementById('equipment-empty');
   const q = (document.getElementById('equip-search')?.value || '').toLowerCase().trim();
-  const filtered = q ? equipments.filter(e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)) : equipments;
+  const filtered = (q ? equipments.filter(e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)) : [...equipments])
+    .sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
   const total = equipments.length, low = equipments.filter(e=>e.qty<=e.minQty).length;
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-low').textContent = low;
