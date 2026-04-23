@@ -46,7 +46,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 .card-header{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ig-border)}
 .card-title{font-size:14px;font-weight:600}
 .card-body{padding:16px}
-.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px}
+.product-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:16px}
 .product-tile{aspect-ratio:1;position:relative;cursor:pointer;background:#f0f0f0;overflow:hidden}
 .product-tile img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
 .product-tile:hover img{transform:scale(1.05)}
@@ -715,7 +715,7 @@ function renderEquip(){
     document.getElementById('equipment-empty').innerHTML = q
       ? `<div class="empty-icon">🔍</div><div class="empty-text">ไม่พบ "${q}"</div><div class="empty-sub">ลองค้นหาด้วยคำอื่น</div>`
       : `<div class="empty-icon">📦</div><div class="empty-text">ยังไม่มีอุปกรณ์สำนักงาน</div><div class="empty-sub">กดปุ่ม "เพิ่มอุปกรณ์" เพื่อเริ่มต้น</div>`;
-  } else { grid.style.display='grid'; empty.style.display='none'; }
+  } else { grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(5,1fr)'; empty.style.display='none'; }
   grid.innerHTML = filtered.map(eq=>`
     <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
       ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
