@@ -1032,7 +1032,20 @@ async function submitIssue(){
           if(eq) await sb.from('materials').update({current_stock: Math.max(0, (eq.qty||0) - it.qty)}).eq('id', eq.id);
         }
       }
-      await loadAll();
+      // อัปเดต local state แทน loadAll() เพื่อความเร็ว
+      issueTxItems.forEach(it=>{
+        const eq = equipments.find(e=>e.code===it.code);
+        if(eq) eq.qty = Math.max(0,(eq.qty||0)-it.qty);
+      });
+      if(editId){
+        const idx = issueTransactions.findIndex(t=>t.id===editId);
+        if(idx>-1) issueTransactions[idx] = {...issueTransactions[idx], docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))};
+      } else {
+        issueTransactions.unshift({id:'pending',docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))});
+      }
+      renderAll();
+      // sync จาก server เบื้องหลัง
+      loadAll().catch(()=>{});
       toast('บันทึกการเบิกสำเร็จ ✓','success');
     } catch(e){ toast(thaiError(e),'error'); }
   } else {
@@ -1172,7 +1185,20 @@ async function submitReceive(){
           if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
         }
       }
-      await loadAll();
+      // อัปเดต local state แทน loadAll() เพื่อความเร็ว
+      receiveTxItems.forEach(it=>{
+        const eq = equipments.find(e=>e.code===it.code);
+        if(eq) eq.qty = (eq.qty||0) + it.qty;
+      });
+      if(editId){
+        const idx = receiveTransactions.findIndex(t=>t.id===editId);
+        if(idx>-1) receiveTransactions[idx] = {...receiveTransactions[idx], docNum,date,note,items:receiveTxItems.map(i=>({...i}))};
+      } else {
+        receiveTransactions.unshift({id:'pending',docNum,date,note,items:receiveTxItems.map(i=>({...i}))});
+      }
+      renderAll();
+      // sync จาก server เบื้องหลัง
+      loadAll().catch(()=>{});
       toast('บันทึกการรับเข้าสำเร็จ ✓','success');
     } catch(e){ toast(thaiError(e),'error'); }
   } else {
