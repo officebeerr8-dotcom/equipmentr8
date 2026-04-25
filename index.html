@@ -686,16 +686,20 @@ function setConn(ok){
 // ===== LOAD ALL FROM SUPABASE =====
 async function loadAll(){
   if(!sb) return;
-  const [eqRes, issRes, recRes] = await Promise.all([
-    sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('code'),
+  // โหลด materials ก่อน — แสดงรูปทันที
+  const eqRes = await sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('code');
+  if(eqRes.error) throw eqRes.error;
+  equipments = (eqRes.data||[]).map(mapMaterial);
+  renderEquip(); renderStockReport(); checkLowStock(); // แสดงรูปก่อนเลย
+
+  // โหลด documents เบื้องหลัง
+  const [issRes, recRes] = await Promise.all([
     sb.from('issuing_documents').select('*, issuing_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
     sb.from('receiving_documents').select('*, receiving_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
   ]);
-  if(eqRes.error) throw eqRes.error;
-  equipments = (eqRes.data||[]).map(mapMaterial);
   issueTransactions = (issRes.data||[]).map(mapIssuingDoc);
   receiveTransactions = (recRes.data||[]).map(mapReceivingDoc);
-  renderAll();
+  renderIssueList(); renderReceiveList(); renderIssueReport(); renderReceiveReport();
 }
 
 // ===== DATA MAPPERS =====
