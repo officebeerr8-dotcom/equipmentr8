@@ -686,20 +686,23 @@ function setConn(ok){
 // ===== LOAD ALL FROM SUPABASE =====
 async function loadAll(){
   if(!sb) return;
-  // โหลด materials ก่อน — แสดงรูปทันที
-  const eqRes = await sb.from('materials').select('*').eq('warehouse_id', currentWarehouse).order('code');
+  // รอบ 1 — โหลดข้อมูลก่อน ไม่เอา image_url (เร็วมาก)
+  const eqRes = await sb.from('materials').select('id,code,name,unit,min_qty,current_stock').eq('warehouse_id', currentWarehouse).order('code');
   if(eqRes.error) throw eqRes.error;
-  equipments = (eqRes.data||[]).map(mapMaterial);
-  renderEquip(); renderStockReport(); checkLowStock(); // แสดงรูปก่อนเลย
+  equipments = (eqRes.data||[]).map(r=>({ id:r.id, code:r.code, name:r.name, unit:r.unit, minQty:r.min_qty||0, qty:r.current_stock||0, img:'' }));
+  renderEquip(); renderStockReport(); checkLowStock(); // แสดงทันทีแบบไม่มีรูป
 
-  // โหลด documents เบื้องหลัง
-  const [issRes, recRes] = await Promise.all([
+  // รอบ 2 — โหลดรูป + documents ควบคู่กัน
+  const [imgRes, issRes, recRes] = await Promise.all([
+    sb.from('materials').select('id,image_url').eq('warehouse_id', currentWarehouse),
     sb.from('issuing_documents').select('*, issuing_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
     sb.from('receiving_documents').select('*, receiving_items(*, materials(code,name,unit,image_url))').eq('warehouse_id', currentWarehouse).order('created_at', {ascending:false}),
   ]);
+  // อัปเดตรูปใน equipments
+  (imgRes.data||[]).forEach(r=>{ const eq=equipments.find(e=>e.id===r.id); if(eq) eq.img=r.image_url||''; });
   issueTransactions = (issRes.data||[]).map(mapIssuingDoc);
   receiveTransactions = (recRes.data||[]).map(mapReceivingDoc);
-  renderIssueList(); renderReceiveList(); renderIssueReport(); renderReceiveReport();
+  renderAll();
 }
 
 // ===== DATA MAPPERS =====
