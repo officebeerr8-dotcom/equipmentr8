@@ -81,7 +81,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 .story-icon{width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#e8e8e8,#f5f5f5);display:flex;align-items:center;justify-content:center;font-size:20px}
 .story-label{font-size:10px;color:var(--ig-text);text-align:center;max-width:60px;line-height:1.3}
 .story-count{font-size:10px;color:var(--ig-muted)}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ig-border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ig-border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
 .stat-cell{background:var(--ig-white);padding:14px 8px;text-align:center}
 .stat-num{font-size:20px;font-weight:600}
 .stat-label{font-size:11px;color:var(--ig-muted);margin-top:2px}
@@ -230,6 +230,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
     <div class="story-row" id="category-stories"></div>
     <div class="stats-row">
       <div class="stat-cell"><div class="stat-num" id="stat-total">0</div><div class="stat-label">รายการทั้งหมด</div></div>
+      <div class="stat-cell"><div class="stat-num" id="stat-empty" style="color:#b91c1c">0</div><div class="stat-label">หมด</div></div>
       <div class="stat-cell"><div class="stat-num" id="stat-low" style="color:var(--ig-red)">0</div><div class="stat-label">ใกล้หมด</div></div>
       <div class="stat-cell"><div class="stat-num" id="stat-ok" style="color:var(--ig-green)">0</div><div class="stat-label">ปกติ</div></div>
     </div>
@@ -729,10 +730,11 @@ function renderEquip(){
   const q = (document.getElementById('equip-search')?.value || '').toLowerCase().trim();
   const filtered = (q ? equipments.filter(e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)) : [...equipments])
     .sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
-  const total = equipments.length, low = equipments.filter(e=>e.qty<=e.minQty).length;
+  const total = equipments.length, empty = equipments.filter(e=>e.qty===0).length, low = equipments.filter(e=>e.qty>0 && e.qty<=e.minQty).length;
   document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-empty').textContent = empty;
   document.getElementById('stat-low').textContent = low;
-  document.getElementById('stat-ok').textContent = total - low;
+  document.getElementById('stat-ok').textContent = total - empty - low;
   if(!filtered.length){ grid.style.display='none'; empty.style.display='block';
     document.getElementById('equipment-empty').innerHTML = q
       ? `<div class="empty-icon">🔍</div><div class="empty-text">ไม่พบ "${q}"</div><div class="empty-sub">ลองค้นหาด้วยคำอื่น</div>`
