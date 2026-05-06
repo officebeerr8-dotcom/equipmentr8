@@ -759,9 +759,19 @@ function renderEquip(){
 function renderStories(){
   const s = document.getElementById('category-stories');
   const low = equipments.filter(e=>e.qty<=e.minQty);
-  const items = [{label:'ทั้งหมด',count:equipments.length,icon:'📦'},{label:'ใกล้หมด',count:low.length,icon:'⚠️'},
-    ...equipments.slice(0,5).map(e=>({label:e.name.length>6?e.name.slice(0,6)+'…':e.name,count:`${e.qty} ${e.unit}`,img:e.img}))];
-  s.innerHTML = items.map(x=>`<div class="story-item"><div class="story-ring"><div class="story-ring-inner">${x.img?`<img src="${x.img}" alt="">`:`<div class="story-icon">${x.icon||'📦'}</div>`}</div></div><div class="story-label">${x.label}</div><div class="story-count">${x.count}</div></div>`).join('');
+  const emptyItems = equipments.filter(e=>e.qty===0);
+  const lowItems = equipments.filter(e=>e.qty>0 && e.qty<=e.minQty);
+  const items = [
+    {label:'ทั้งหมด', count:equipments.length, icon:'📦'},
+    {label:'ใกล้หมด', count:lowItems.length, icon:'⚠️'},
+    {label:'หมด', count:emptyItems.length, icon:'🚫'},
+    ...equipments.slice(0,5).map(e=>({label:e.name.length>6?e.name.slice(0,6)+'…':e.name, count:`${e.qty} ${e.unit}`, img:e.img}))
+  ];
+  s.innerHTML = items.map((x,i)=>{
+    const ringColor = i===2 ? '#b91c1c' : '';
+    const ringStyle = ringColor ? `style="background:conic-gradient(${ringColor} 0%,${ringColor} 100%)"` : '';
+    return `<div class="story-item"><div class="story-ring" ${ringStyle}><div class="story-ring-inner">${x.img?`<img src="${x.img}" alt="">`:`<div class="story-icon">${x.icon||'📦'}</div>`}</div></div><div class="story-label">${x.label}</div><div class="story-count">${x.count}</div></div>`;
+  }).join('');
 }
 
 function showEquipDetail(id){
