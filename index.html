@@ -533,7 +533,28 @@ const WAREHOUSES = {
 };
 let currentWarehouse = null;
 
-function selectWarehouse(wh){
+function switchWarehouse(){
+  if(!confirm('เปลี่ยนหน่วยงาน?')) return;
+  // รีเซ็ตเฉพาะข้อมูล ไม่ reset sb (connection ยังใช้ได้)
+  currentWarehouse = null;
+  usingDemo = false;
+  equipments=[]; issueTransactions=[]; receiveTransactions=[];
+  issueTxItems=[]; receiveTxItems=[];
+  // Reset navigation
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-equipment').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+  const s = document.getElementById('equip-search'); if(s) s.value='';
+  const badge = document.getElementById('topbar-dept-badge');
+  badge.style.display='none'; badge.textContent='';
+  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));
+  document.getElementById('warehouse-screen').classList.remove('hidden');
+  document.getElementById('warehouse-screen').style.display='';
+}
+
+async function selectWarehouse(wh){
   currentWarehouse = wh;
   const w = WAREHOUSES[wh];
   const badge = document.getElementById('topbar-dept-badge');
@@ -544,33 +565,16 @@ function selectWarehouse(wh){
   const screen = document.getElementById('warehouse-screen');
   screen.style.display = 'none';
   screen.classList.add('hidden');
-  init();
-}
-
-function switchWarehouse(){
-  if(!confirm('เปลี่ยนหน่วยงาน?')) return;
-  // Reset state
-  currentWarehouse = null;
-  sb = null;
-  usingDemo = false;
-  equipments=[]; issueTransactions=[]; receiveTransactions=[];
-  issueTxItems=[]; receiveTxItems=[];
-  // Reset navigation to first tab
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-equipment').classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.nav-item').classList.add('active');
-  // Clear search
-  const s = document.getElementById('equip-search'); if(s) s.value='';
-  // Hide badge
-  const badge = document.getElementById('topbar-dept-badge');
-  badge.style.display='none'; badge.textContent='';
-  // Close any open modals
-  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));
-  // Show warehouse selector
-  document.getElementById('warehouse-screen').classList.remove('hidden');
-  setConn(false);
+  // ถ้ามี sb อยู่แล้ว โหลดข้อมูลทันที ไม่ต้อง connect ใหม่
+  if(sb){
+    document.getElementById('issue-date').value = today();
+    document.getElementById('receive-date').value = today();
+    equipments=[]; issueTransactions=[]; receiveTransactions=[];
+    showSkeleton();
+    try { await loadAll(); setConn(true); } catch(e){ toast(thaiError(e),'error'); }
+  } else {
+    init();
+  }
 }
 
 // ===== STATE =====
