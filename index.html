@@ -749,7 +749,7 @@ function renderEquip(){
     <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
       ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
         `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${eq.name}</div></div>`}
-      ${eq.qty===0 ? `<div class="tile-low" style="background:#b91c1c">หมด</div>` : eq.qty<=eq.minQty ? `<div class="tile-low" style="background:#d97706">ใกล้หมด</div>` : ''}
+      ${eq.qty===0 ? `<div class="tile-low" style="background:#b91c1c">หมด</div>` : eq.qty<=eq.minQty ? `<div class="tile-low" style="background:#facc15;color:#78350f">ใกล้หมด</div>` : ''}
       <div class="tile-name">${eq.name}</div>
       <div class="tile-overlay"><div style="font-weight:700;font-size:15px">${eq.qty}</div><div style="font-size:11px">${eq.unit}</div><div style="font-size:10px;opacity:.8">${eq.code}</div></div>
     </div>`).join('');
