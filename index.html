@@ -742,7 +742,7 @@ function renderEquip(){
     <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
       ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
         `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${eq.name}</div></div>`}
-      ${eq.qty<=eq.minQty ? `<div class="tile-low">ใกล้หมด</div>` : ''}
+      ${eq.qty===0 ? `<div class="tile-low" style="background:#b91c1c">หมด</div>` : eq.qty<=eq.minQty ? `<div class="tile-low">ใกล้หมด</div>` : ''}
       <div class="tile-name">${eq.name}</div>
       <div class="tile-overlay"><div style="font-weight:700;font-size:15px">${eq.qty}</div><div style="font-size:11px">${eq.unit}</div><div style="font-size:10px;opacity:.8">${eq.code}</div></div>
     </div>`).join('');
@@ -767,7 +767,7 @@ function showEquipDetail(id){
       <tr><td style="color:var(--ig-muted);width:90px">รหัส</td><td style="font-weight:500">${eq.code}</td></tr>
       <tr><td style="color:var(--ig-muted)">ชื่อ</td><td>${eq.name}</td></tr>
       <tr><td style="color:var(--ig-muted)">คงเหลือ</td><td><span style="font-size:22px;font-weight:700;color:${isLow?'var(--ig-red)':'var(--ig-green)'}">${eq.qty}</span> <span style="color:var(--ig-muted)">${eq.unit}</span></td></tr>
-      <tr><td style="color:var(--ig-muted)">สถานะ</td><td>${isLow?'<span class="badge badge-danger">⚠️ ใกล้หมด</span>':'<span class="badge badge-success">✓ ปกติ</span>'}</td></tr>
+      <tr><td style="color:var(--ig-muted)">สถานะ</td><td>${eq.qty===0?'<span class="badge badge-danger" style="background:#b91c1c">🚫 หมด</span>':isLow?'<span class="badge badge-danger">⚠️ ใกล้หมด</span>':'<span class="badge badge-success">✓ ปกติ</span>'}</td></tr>
       <tr><td style="color:var(--ig-muted)">ขั้นต่ำ</td><td>${eq.minQty} ${eq.unit}</td></tr>
     </table>
     <div style="display:flex;gap:8px;margin-top:14px">
@@ -1353,7 +1353,7 @@ function filterStock(type, btn){
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
           <span style="font-weight:500;font-size:14px">${eq.name}</span>
-          ${isLow?'<span class="badge badge-danger" style="font-size:10px">⚠️ ใกล้หมด</span>':''}
+          ${eq.qty===0?'<span class="badge badge-danger" style="font-size:10px;background:#b91c1c">🚫 หมด</span>':isLow?'<span class="badge badge-danger" style="font-size:10px">⚠️ ใกล้หมด</span>':''}
         </div>
         <div style="font-size:11px;color:var(--ig-muted);margin-bottom:5px">${eq.code}</div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${isLow?'var(--ig-red)':'var(--ig-green)'}"></div></div>
@@ -1433,7 +1433,7 @@ function renderChart(id,labels,data,label,color,setter,prev){
 // ===== EXPORT =====
 function exportStock(){
   const rows = [['รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
-  equipments.forEach(eq=>rows.push([eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
+  equipments.forEach(eq=>rows.push([eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
   dlCSV(rows,'stock_report.csv');
 }
 function exportIssueReport(){
@@ -1466,8 +1466,13 @@ function checkLowStock(){
 }
 function showLowStockAlert(){
   const low = equipments.filter(e=>e.qty<=e.minQty);
-  if(!low.length){ toast('ไม่มีอุปกรณ์ใกล้หมด 🎉','success'); return; }
-  alert(`⚠️ อุปกรณ์ใกล้หมด ${low.length} รายการ:\n`+low.map(e=>`• ${e.name}: ${e.qty} ${e.unit} (ขั้นต่ำ ${e.minQty})`).join('\n'));
+  const empty2 = equipments.filter(e=>e.qty===0);
+if(!low.length && !empty2.length){ toast('ไม่มีอุปกรณ์ใกล้หมด 🎉','success'); return; }
+  const emptyList = equipments.filter(e=>e.qty===0);
+let msg='';
+if(emptyList.length) msg+=`🚫 หมดแล้ว ${emptyList.length} รายการ:\n`+emptyList.map(e=>`• ${e.name}`).join('\n')+'\n\n';
+if(low.filter(e=>e.qty>0).length) msg+=`⚠️ ใกล้หมด ${low.filter(e=>e.qty>0).length} รายการ:\n`+low.filter(e=>e.qty>0).map(e=>`• ${e.name}: ${e.qty} ${e.unit} (ขั้นต่ำ ${e.minQty})`).join('\n');
+alert(msg.trim());
 }
 
 // ===== NAV =====
