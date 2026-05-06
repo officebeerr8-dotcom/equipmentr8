@@ -166,7 +166,8 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 .warehouse-logo{font-size:28px;font-weight:700;background:var(--ig-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
 .warehouse-subtitle{font-size:14px;color:var(--ig-muted);margin-bottom:36px}
 .warehouse-cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:340px}
-.warehouse-card{border:2px solid var(--ig-border);border-radius:16px;padding:20px 24px;cursor:pointer;transition:all .2s;background:var(--ig-white);display:flex;align-items:center;gap:16px}
+.warehouse-card{border:2px solid var(--ig-border);border-radius:16px;padding:20px 24px;cursor:pointer;transition:all .2s;background:var(--ig-white);display:flex;align-items:center;gap:16px;-webkit-tap-highlight-color:rgba(0,0,0,0.1)}
+.warehouse-card *{pointer-events:none}
 .warehouse-card:hover{border-color:var(--ig-blue);box-shadow:0 4px 20px rgba(0,149,246,.15);transform:translateY(-2px)}
 .warehouse-card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .warehouse-card-info{flex:1}
@@ -535,14 +536,14 @@ let currentWarehouse = null;
 function selectWarehouse(wh){
   currentWarehouse = wh;
   const w = WAREHOUSES[wh];
-  // Show badge on topbar
   const badge = document.getElementById('topbar-dept-badge');
   badge.textContent = w.icon + ' ' + w.label;
   badge.style.display = 'inline-flex';
   badge.style.background = w.bg;
   badge.style.color = w.color;
-  // Hide selector, show app
-  document.getElementById('warehouse-screen').classList.add('hidden');
+  const screen = document.getElementById('warehouse-screen');
+  screen.style.display = 'none';
+  screen.classList.add('hidden');
   init();
 }
 
@@ -730,11 +731,11 @@ function renderEquip(){
   const q = (document.getElementById('equip-search')?.value || '').toLowerCase().trim();
   const filtered = (q ? equipments.filter(e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)) : [...equipments])
     .sort((a,b) => a.code.localeCompare(b.code, undefined, {numeric:true}));
-  const total = equipments.length, empty = equipments.filter(e=>e.qty===0).length, low = equipments.filter(e=>e.qty>0 && e.qty<=e.minQty).length;
+  const total = equipments.length, emptyCount = equipments.filter(e=>e.qty===0).length, low = equipments.filter(e=>e.qty>0 && e.qty<=e.minQty).length;
   document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-empty').textContent = empty;
+  document.getElementById('stat-empty').textContent = emptyCount;
   document.getElementById('stat-low').textContent = low;
-  document.getElementById('stat-ok').textContent = total - empty - low;
+  document.getElementById('stat-ok').textContent = total - emptyCount - low;
   if(!filtered.length){ grid.style.display='none'; empty.style.display='block';
     document.getElementById('equipment-empty').innerHTML = q
       ? `<div class="empty-icon">🔍</div><div class="empty-text">ไม่พบ "${q}"</div><div class="empty-sub">ลองค้นหาด้วยคำอื่น</div>`
