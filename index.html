@@ -283,6 +283,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       <button class="filter-chip" onclick="filterStock('desc',this)">มาก → น้อย</button>
       <button class="filter-chip" onclick="filterStock('asc',this)">น้อย → มาก</button>
       <button class="filter-chip" onclick="filterStock('low',this)">⚠️ ใกล้หมด</button>
+      <button class="filter-chip" onclick="filterStock('empty',this)" style="color:#b91c1c;border-color:#fca5a5">🚫 หมด</button>
     </div>
     <div id="stock-list"></div>
   </div>
@@ -1359,7 +1360,8 @@ function filterStock(type, btn){
   let items = [...equipments];
   if(type==='desc') items.sort((a,b)=>b.qty-a.qty);
   else if(type==='asc') items.sort((a,b)=>a.qty-b.qty);
-  else if(type==='low') items = items.filter(e=>e.qty<=e.minQty);
+  else if(type==='low') items = items.filter(e=>e.qty>0 && e.qty<=e.minQty);
+  else if(type==='empty') items = items.filter(e=>e.qty===0);
   const list = document.getElementById('stock-list');
   if(!items.length){ list.innerHTML='<div class="empty-state"><div class="empty-text">ไม่พบรายการ</div></div>'; return; }
   list.innerHTML = items.map(eq=>{
