@@ -785,7 +785,7 @@ function showEquipDetail(id){
       <tr><td style="color:var(--ig-muted);width:90px">รหัส</td><td style="font-weight:500">${eq.code}</td></tr>
       <tr><td style="color:var(--ig-muted)">ชื่อ</td><td>${eq.name}</td></tr>
       <tr><td style="color:var(--ig-muted)">คงเหลือ</td><td><span style="font-size:22px;font-weight:700;color:${isLow?'var(--ig-red)':'var(--ig-green)'}">${eq.qty}</span> <span style="color:var(--ig-muted)">${eq.unit}</span></td></tr>
-      <tr><td style="color:var(--ig-muted)">สถานะ</td><td>${eq.qty===0?'<span class="badge badge-danger" style="background:#b91c1c">🚫 หมด</span>':isLow?'<span class="badge" style="background:#fef3c7;color:#92400e">⚠️ ใกล้หมด</span>':'<span class="badge badge-success">✓ ปกติ</span>'}</td></tr>
+      <tr><td style="color:var(--ig-muted)">สถานะ</td><td>${eq.qty===0?'<span class="badge badge-danger" style="background:#b91c1c;color:#fff">🚫 หมด</span>':isLow?'<span class="badge" style="background:#fef3c7;color:#92400e">⚠️ ใกล้หมด</span>':'<span class="badge badge-success">✓ ปกติ</span>'}</td></tr>
       <tr><td style="color:var(--ig-muted)">ขั้นต่ำ</td><td>${eq.minQty} ${eq.unit}</td></tr>
     </table>
     <div style="display:flex;gap:8px;margin-top:14px">
@@ -1372,7 +1372,7 @@ function filterStock(type, btn){
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
           <span style="font-weight:500;font-size:14px">${eq.name}</span>
-          ${eq.qty===0?'<span class="badge badge-danger" style="font-size:10px;background:#b91c1c">🚫 หมด</span>':isLow?'<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">⚠️ ใกล้หมด</span>':''}
+          ${eq.qty===0?'<span class="badge badge-danger" style="font-size:10px;background:#b91c1c;color:#fff">🚫 หมด</span>':isLow?'<span class="badge" style="font-size:10px;background:#fef3c7;color:#92400e">⚠️ ใกล้หมด</span>':''}
         </div>
         <div style="font-size:11px;color:var(--ig-muted);margin-bottom:5px">${eq.code}</div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${isLow?'var(--ig-red)':'var(--ig-green)'}"></div></div>
