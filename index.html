@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--ig-white:#ffffff;--ig-bg:#fafafa;--ig-border:#dbdbdb;--ig-text:#262626;--ig-muted:#8e8e8e;--ig-blue:#0095f6;--ig-red:#ed4956;--ig-green:#58c322;--ig-orange:#fd9400;--ig-gradient:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);--ig-gradient-btn:linear-gradient(90deg,#833ab4,#fd1d1d,#fcb045);--radius:12px;--radius-sm:8px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1453,27 +1454,28 @@ function renderChart(id,labels,data,label,color,setter,prev){
 function exportStock(){
   const rows = [['หน่วยงาน','รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
   equipments.forEach(eq=>rows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
-  dlCSV(rows,`stock_${currentWarehouse}_report.csv`);
+  dlXLSX(rows,'สต๊อกคงเหลือ',`stock_${currentWarehouse}_report.xlsx`);
 }
 function exportIssueReport(){
   const m = issueReportMonth;
   const filtered = issueTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
   const rows = [['หน่วยงาน','เลขที่เอกสาร','วันที่','ผู้เบิก','หน่วยงานผู้เบิก','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
   filtered.forEach(tx=>(tx.items||[]).forEach(it=>rows.push([currentWarehouse,tx.docNum,tx.date,tx.requester,tx.dept||'',it.code,it.name,it.qty,it.unit,tx.note||''])));
-  dlCSV(rows,`issue_${currentWarehouse}_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.csv`);
+  dlXLSX(rows,'รายงานเบิก-จ่าย',`issue_${currentWarehouse}_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.xlsx`);
 }
 function exportReceiveReport(){
   const m = receiveReportMonth;
   const filtered = receiveTransactions.filter(tx=>{ const d=new Date(tx.date); return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear(); });
   const rows = [['หน่วยงาน','เลขที่เอกสาร','วันที่','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
   filtered.forEach(tx=>(tx.items||[]).forEach(it=>rows.push([currentWarehouse,tx.docNum,tx.date,it.code,it.name,it.qty,it.unit,tx.note||''])));
-  dlCSV(rows,`receive_${currentWarehouse}_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.csv`);
+  dlXLSX(rows,'รายงานรับเข้า',`receive_${currentWarehouse}_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}.xlsx`);
 }
-function dlCSV(rows,fn){
-  const bom='\uFEFF';
-  const csv=bom+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download=fn; a.click(); toast('ดาวน์โหลดแล้ว ✓','success');
+function dlXLSX(rows, sheetName, fn){
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fn);
+  toast('ดาวน์โหลดแล้ว ✓','success');
 }
 
 // ===== LOW STOCK =====
