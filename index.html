@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{--ig-white:#ffffff;--ig-bg:#fafafa;--ig-border:#dbdbdb;--ig-text:#262626;--ig-muted:#8e8e8e;--ig-blue:#0095f6;--ig-red:#ed4956;--ig-green:#58c322;--ig-orange:#fd9400;--ig-gradient:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);--ig-gradient-btn:linear-gradient(90deg,#833ab4,#fd1d1d,#fcb045);--radius:12px;--radius-sm:8px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -561,7 +561,8 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 <script>
 // ===== SUPABASE CONFIG (hardcoded - do not expose to client) =====
 const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ URL จริงที่นี่
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M
+'; // ← ใส่ Key จริงที่นี่
 let sb = null; // supabase client
 
 // ===== WAREHOUSE =====
@@ -1537,11 +1538,14 @@ function exportAllReports(){
 }
 
 function dlXLSX(rows, sheetName, fn){
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  XLSX.writeFile(wb, fn);
-  toast('ดาวน์โหลดแล้ว ✓','success');
+  if(typeof XLSX === 'undefined'){ toast('กำลังโหลด Excel library... ลองใหม่อีกครั้ง','error'); return; }
+  try {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, fn);
+    toast('ดาวน์โหลดแล้ว ✓','success');
+  } catch(e){ toast('เกิดข้อผิดพลาด: '+e.message,'error'); }
 }
 
 // ===== LOW STOCK =====
@@ -1618,10 +1622,20 @@ function renderEquipReport(){
   }).join('');
 }
 function exportEquipReport(){
-  const rows = [['หน่วยงาน','รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
-  equipments.sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true}))
-    .forEach(eq=>rows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
-  dlXLSX(rows,'รายงานอุปกรณ์สำนักงาน',`equip_${currentWarehouse}_${today()}.xlsx`);
+  try {
+    const rows = [['หน่วยงาน','รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
+    [...equipments]
+      .sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true}))
+      .forEach(eq=>rows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,
+        eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'รายงานอุปกรณ์สำนักงาน');
+    XLSX.writeFile(wb, `equip_${currentWarehouse}_${today()}.xlsx`);
+    toast('ดาวน์โหลดแล้ว ✓','success');
+  } catch(e) {
+    toast('เกิดข้อผิดพลาด: '+e.message,'error');
+  }
 }
 
 function goReport(tab){
