@@ -185,7 +185,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
   <div class="warehouse-logo">equipment</div>
   <div class="warehouse-subtitle">เลือกหน่วยงานของคุณ</div>
   <div class="warehouse-cards">
-    <div class="warehouse-card" onclick="selectWarehouse('POM')">
+    <div class="warehouse-card" id="wh-POM" onclick="selectWarehouse('POM')" ontouchend="selectWarehouse('POM')">
       <div class="warehouse-card-icon" style="background:#eff6ff">🏭</div>
       <div class="warehouse-card-info">
         <div class="warehouse-card-name" style="color:#2563eb">POM</div>
@@ -193,7 +193,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       </div>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
-    <div class="warehouse-card" onclick="selectWarehouse('NUM')">
+    <div class="warehouse-card" id="wh-NUM" onclick="selectWarehouse('NUM')" ontouchend="selectWarehouse('NUM')">
       <div class="warehouse-card-icon" style="background:#f0fdf4">📦</div>
       <div class="warehouse-card-info">
         <div class="warehouse-card-name" style="color:#16a34a">NUM</div>
@@ -201,7 +201,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       </div>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
-    <div class="warehouse-card" onclick="selectWarehouse('CVM')">
+    <div class="warehouse-card" id="wh-CVM" onclick="selectWarehouse('CVM')" ontouchend="selectWarehouse('CVM')">
       <div class="warehouse-card-icon" style="background:#fdf4ff">🗄️</div>
       <div class="warehouse-card-info">
         <div class="warehouse-card-name" style="color:#9333ea">CVM</div>
@@ -561,8 +561,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 <script>
 // ===== SUPABASE CONFIG (hardcoded - do not expose to client) =====
 const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ URL จริงที่นี่
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M
-'; // ← ใส่ Key จริงที่นี่
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
 let sb = null; // supabase client
 
 // ===== WAREHOUSE =====
@@ -594,7 +593,11 @@ function switchWarehouse(){
   document.getElementById('warehouse-screen').style.display='';
 }
 
+let _whSelecting = false;
 async function selectWarehouse(wh){
+  if(_whSelecting) return;
+  _whSelecting = true;
+  setTimeout(()=>{ _whSelecting = false; }, 1500);
   currentWarehouse = wh;
   const w = WAREHOUSES[wh];
   const badge = document.getElementById('topbar-dept-badge');
@@ -605,7 +608,6 @@ async function selectWarehouse(wh){
   const screen = document.getElementById('warehouse-screen');
   screen.style.display = 'none';
   screen.classList.add('hidden');
-  // ถ้ามี sb อยู่แล้ว โหลดข้อมูลทันที ไม่ต้อง connect ใหม่
   if(sb){
     document.getElementById('issue-date').value = today();
     document.getElementById('receive-date').value = today();
