@@ -181,7 +181,27 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 <body>
 
 <!-- Warehouse Selector -->
-<div class="warehouse-screen" id="warehouse-screen">
+<!-- Login Screen -->
+<div class="warehouse-screen" id="login-screen">
+  <div class="warehouse-logo">equipment</div>
+  <div class="warehouse-subtitle">ระบบจัดการวัสดุอุปกรณ์สำนักงาน</div>
+  <div style="width:100%;max-width:340px">
+    <div class="form-group" style="margin-bottom:12px">
+      <input type="text" class="form-control" id="login-user" placeholder="ชื่อผู้ใช้" autocomplete="username" style="font-size:15px">
+    </div>
+    <div class="form-group" style="margin-bottom:16px;position:relative">
+      <input type="password" class="form-control" id="login-pass" placeholder="รหัสผ่าน" autocomplete="current-password" style="font-size:15px" onkeydown="if(event.key==='Enter')doLogin()">
+      <button onclick="togglePass()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ig-muted)">
+        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="login-error" style="color:#dc2626;font-size:13px;text-align:center;margin-bottom:10px;display:none"></div>
+    <button class="btn btn-gradient btn-block" onclick="doLogin()" style="font-size:15px;padding:14px">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<!-- Warehouse Selector (SuperUser only) -->
+<div class="warehouse-screen hidden" id="warehouse-screen">
   <div class="warehouse-logo">equipment</div>
   <div class="warehouse-subtitle">เลือกหน่วยงานของคุณ</div>
   <div class="warehouse-cards">
@@ -223,6 +243,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       <span class="alert-badge" id="alert-badge" style="display:none">!</span>
     </button>
     <button class="btn btn-outline btn-sm" onclick="switchWarehouse()" style="font-size:12px;padding:5px 12px">เปลี่ยนหน่วยงาน</button>
+    <button class="btn btn-sm" onclick="doLogout()" style="font-size:12px;padding:5px 12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px">ออกจากระบบ</button>
   </div>
 </header>
 
@@ -581,6 +602,64 @@ const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ UR
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
 let sb = null; // supabase client
 
+// ===== LOGIN SYSTEM =====
+const USERS = {
+  'userpom':  { pass: 'pom1234',   role: 'POM',   warehouses: ['POM'] },
+  'usernum':  { pass: 'num1234',   role: 'NUM',   warehouses: ['NUM'] },
+  'usercvm':  { pass: 'cvm1234',   role: 'CVM',   warehouses: ['CVM'] },
+  'superuser':{ pass: 'super1234', role: 'SUPER', warehouses: ['POM','NUM','CVM'] },
+};
+let currentUser = null;
+
+function togglePass(){
+  const inp = document.getElementById('login-pass');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+function doLogin(){
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const user = USERS[u];
+  if(!user || user.pass !== p){
+    err.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; err.style.display='block'; return;
+  }
+  err.style.display='none';
+  currentUser = {...user, username: u};
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('login-screen').classList.add('hidden');
+  // ซ่อน/แสดงปุ่มเปลี่ยนหน่วยงานตาม role
+  const switchBtn = document.querySelector('button[onclick="switchWarehouse()"]');
+  if(switchBtn) switchBtn.style.display = currentUser.role==='SUPER' ? '' : 'none';
+  if(currentUser.role === 'SUPER'){
+    // SuperUser เลือกหน่วยงานเอง
+    document.getElementById('warehouse-screen').classList.remove('hidden');
+    document.getElementById('warehouse-screen').style.display='';
+  } else {
+    // User ปกติ เข้าหน่วยงานตัวเองเลย
+    selectWarehouse(currentUser.warehouses[0]);
+  }
+}
+
+function doLogout(){
+  currentUser = null; currentWarehouse = null; sb = null;
+  equipments=[]; issueTransactions=[]; receiveTransactions=[];
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('topbar-dept-badge').style.display='none';
+  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-equipment').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+  document.getElementById('warehouse-screen').classList.add('hidden');
+  document.getElementById('warehouse-screen').style.display='none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-screen').style.display='';
+  setConn(false);
+}
+
 // ===== WAREHOUSE =====
 const WAREHOUSES = {
   POM: { label:'POM', color:'#2563eb', bg:'#eff6ff', icon:'🏭' },
@@ -590,6 +669,7 @@ const WAREHOUSES = {
 let currentWarehouse = null;
 
 function switchWarehouse(){
+  if(currentUser?.role !== 'SUPER'){ toast('สิทธิ์ไม่เพียงพอ','error'); return; }
   if(!confirm('เปลี่ยนหน่วยงาน?')) return;
   // รีเซ็ตเฉพาะข้อมูล ไม่ reset sb (connection ยังใช้ได้)
   currentWarehouse = null;
