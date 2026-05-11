@@ -503,7 +503,6 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
     <div class="modal-header"><span class="modal-title">ดาวน์โหลดรายงาน</span><button class="modal-close" onclick="closeModal('modal-reports-tab')">×</button></div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">กรองตามช่วงเวลา (ว่างไว้ = ทั้งหมด)</label>
         <div style="display:flex;gap:8px">
           <select class="form-control" id="report-year-picker" style="flex:1">
             <option value="">ทุกปี</option>
@@ -527,7 +526,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       </div>
       <button class="btn btn-gradient btn-block" onclick="exportAllReports()" style="margin-top:4px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        ดาวน์โหลดรายงานทั้งหมด (Excel)
+        ดาวน์โหลดรายงาน (Excel)
       </button>
     </div>
   </div>
@@ -578,7 +577,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 
 <script>
 // ===== SUPABASE CONFIG (hardcoded - do not expose to client) =====
-const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ URL จริงที่นี่
+const SB_URL = 'YOUR_SUPhttps://zljfwhnimgjghsthcxjn.supabase.coABASE_URL';   // ← ใส่ URL จริงที่นี่
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
 let sb = null; // supabase client
 
