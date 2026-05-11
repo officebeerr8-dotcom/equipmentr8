@@ -500,17 +500,35 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 <div class="modal-overlay hidden" id="modal-reports-tab">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-header"><span class="modal-title">เลือกรายงาน</span><button class="modal-close" onclick="closeModal('modal-reports-tab')">×</button></div>
+    <div class="modal-header"><span class="modal-title">ดาวน์โหลดรายงาน</span><button class="modal-close" onclick="closeModal('modal-reports-tab')">×</button></div>
     <div class="modal-body">
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn btn-outline btn-block" onclick="goReport('issue-report')">📤 รายงานการเบิก-จ่าย</button>
-        <button class="btn btn-outline btn-block" onclick="goReport('receive-report')">📥 รายงานการรับเข้า</button>
-        <button class="btn btn-outline btn-block" onclick="goReport('equip-report')">📋 รายงานอุปกรณ์สำนักงาน</button>
-        <button class="btn btn-gradient btn-block" onclick="exportAllReports()" style="margin-top:8px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          ดาวน์โหลดรายงานทั้งหมด (Excel)
-        </button>
+      <div class="form-group">
+        <label class="form-label">กรองตามช่วงเวลา (ว่างไว้ = ทั้งหมด)</label>
+        <div style="display:flex;gap:8px">
+          <select class="form-control" id="report-year-picker" style="flex:1">
+            <option value="">ทุกปี</option>
+          </select>
+          <select class="form-control" id="report-month-picker2" style="flex:1">
+            <option value="">ทุกเดือน</option>
+            <option value="1">มกราคม</option>
+            <option value="2">กุมภาพันธ์</option>
+            <option value="3">มีนาคม</option>
+            <option value="4">เมษายน</option>
+            <option value="5">พฤษภาคม</option>
+            <option value="6">มิถุนายน</option>
+            <option value="7">กรกฎาคม</option>
+            <option value="8">สิงหาคม</option>
+            <option value="9">กันยายน</option>
+            <option value="10">ตุลาคม</option>
+            <option value="11">พฤศจิกายน</option>
+            <option value="12">ธันวาคม</option>
+          </select>
+        </div>
       </div>
+      <button class="btn btn-gradient btn-block" onclick="exportAllReports()" style="margin-top:4px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        ดาวน์โหลดรายงานทั้งหมด (Excel)
+      </button>
     </div>
   </div>
 </div>
@@ -1510,33 +1528,71 @@ function exportReceiveReport(){
   filtered.forEach(tx=>(tx.items||[]).forEach(it=>rows.push([currentWarehouse,tx.docNum,tx.date,it.code,it.name,it.qty,it.unit,tx.note||''])));
   dlAuto(rows,'รายงานรับเข้า',`receive_${currentWarehouse}_${m.getFullYear()}${String(m.getMonth()+1).padStart(2,'0')}`);
 }
+function populateReportYears(){
+  const sel = document.getElementById('report-year-picker');
+  if(!sel) return;
+  const curYear = new Date().getFullYear();
+  // clear and rebuild
+  sel.innerHTML = '<option value="">ทุกปี</option>';
+  const years = new Set([curYear]);
+  for(let y = curYear-1; y >= curYear-5; y--) years.add(y);
+  [...issueTransactions,...receiveTransactions].forEach(tx=>{ if(tx.date) years.add(new Date(tx.date).getFullYear()); });
+  [...years].sort((a,b)=>b-a).forEach(y=>{
+    const o = document.createElement('option'); o.value=y; o.textContent=y+' ('+(y+543)+')'; sel.appendChild(o);
+  });
+  // ตั้งค่าเริ่มต้นเป็นปีปัจจุบัน
+  sel.value = curYear;
+}
+
 function exportAllReports(){
   closeModal('modal-reports-tab');
-  const wb = XLSX.utils.book_new();
+  const selYear = document.getElementById('report-year-picker')?.value;
+  const selMonth = document.getElementById('report-month-picker2')?.value;
+  const filterByDate = (tx) => {
+    if(!selYear && !selMonth) return true;
+    const d = new Date(tx.date);
+    if(selYear && d.getFullYear() !== Number(selYear)) return false;
+    if(selMonth && d.getMonth()+1 !== Number(selMonth)) return false;
+    return true;
+  };
+  let suffix = '';
+  if(selYear) suffix += `_${selYear}`;
+  if(selMonth) suffix += `_เดือน${selMonth.padStart(2,'0')}`;
+  if(!suffix) suffix = '_ทั้งหมด';
 
   // Sheet 1: รายงานอุปกรณ์สำนักงาน
   const equipRows = [['หน่วยงาน','รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
   [...equipments].sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true}))
-    .forEach(eq=>equipRows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(equipRows), 'รายงานอุปกรณ์สำนักงาน');
+    .forEach(eq=>equipRows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,
+      eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
 
   // Sheet 2: สต๊อกคงเหลือ
-  const stockRows = [['หน่วยงาน','รหัส','ชื่ออุปกรณ์','หน่วยนับ','คงเหลือ','ขั้นต่ำ','สถานะ']];
-  equipments.forEach(eq=>stockRows.push([currentWarehouse,eq.code,eq.name,eq.unit,eq.qty,eq.minQty,eq.qty===0?'หมด':eq.qty<=eq.minQty?'ใกล้หมด':'ปกติ']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stockRows), 'สต๊อกคงเหลือ');
+  const stockRows = equipRows;
 
   // Sheet 3: รายงานเบิก-จ่าย
   const issueRows = [['หน่วยงาน','เลขที่เอกสาร','วันที่','ผู้เบิก','หน่วยงานผู้เบิก','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
-  issueTransactions.forEach(tx=>(tx.items||[]).forEach(it=>issueRows.push([currentWarehouse,tx.docNum,tx.date,tx.requester,tx.dept||'',it.code,it.name,it.qty,it.unit,tx.note||''])));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(issueRows), 'รายงานเบิก-จ่าย');
+  issueTransactions.filter(filterByDate).forEach(tx=>(tx.items||[]).forEach(it=>
+    issueRows.push([currentWarehouse,tx.docNum,tx.date,tx.requester,tx.dept||'',it.code,it.name,it.qty,it.unit,tx.note||''])));
 
   // Sheet 4: รายงานรับเข้า
   const recRows = [['หน่วยงาน','เลขที่เอกสาร','วันที่','รหัส','ชื่ออุปกรณ์','จำนวน','หน่วยนับ','หมายเหตุ']];
-  receiveTransactions.forEach(tx=>(tx.items||[]).forEach(it=>recRows.push([currentWarehouse,tx.docNum,tx.date,it.code,it.name,it.qty,it.unit,tx.note||''])));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recRows), 'รายงานรับเข้า');
+  receiveTransactions.filter(filterByDate).forEach(tx=>(tx.items||[]).forEach(it=>
+    recRows.push([currentWarehouse,tx.docNum,tx.date,it.code,it.name,it.qty,it.unit,tx.note||''])));
 
-  XLSX.writeFile(wb, `รายงานทั้งหมด_${currentWarehouse}_${today()}.xlsx`);
-  toast('ดาวน์โหลดรายงานทั้งหมด ✓','success');
+  const fn = `รายงานทั้งหมด_${currentWarehouse}${suffix}`;
+  if(typeof XLSX !== 'undefined'){
+    try{
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(equipRows), 'รายงานอุปกรณ์สำนักงาน');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(stockRows), 'สต๊อกคงเหลือ');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(issueRows), 'รายงานเบิก-จ่าย');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recRows), 'รายงานรับเข้า');
+      XLSX.writeFile(wb, fn+'.xlsx');
+      toast('ดาวน์โหลดรายงานทั้งหมด ✓','success'); return;
+    }catch(e){}
+  }
+  dlAuto(issueRows,'รายงานเบิก-จ่าย',`issue_${currentWarehouse}${suffix}`);
+  toast('XLSX ไม่พร้อม ดาวน์โหลดแยกไฟล์แทน','error');
 }
 
 function dlAuto(rows, sheetName, fnBase){
@@ -1584,6 +1640,7 @@ function openReportTab(btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  populateReportYears();
   openModal('modal-reports-tab');
 }
 function navigateIssue(btn){
@@ -1645,12 +1702,15 @@ function exportEquipReport(){
 
 function goReport(tab){
   closeModal('modal-reports-tab');
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
-  document.getElementById(`page-${tab}`).classList.add('active');
-  document.getElementById('nav-report-btn').classList.add('active');
-  if(tab==='equip-report') renderEquipReport();
+  setTimeout(()=>{
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.nav-item-issue').forEach(b=>b.classList.remove('active'));
+    const page = document.getElementById(`page-${tab}`);
+    if(page){ page.classList.add('active'); window.scrollTo(0,0); }
+    document.getElementById('nav-report-btn').classList.add('active');
+    if(tab==='equip-report') renderEquipReport();
+  }, 50);
 }
 
 // ===== MODAL =====
