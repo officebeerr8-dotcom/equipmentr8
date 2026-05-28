@@ -598,7 +598,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 
 <script>
 // ===== SUPABASE CONFIG (hardcoded - do not expose to client) =====
-const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ URL จริงที่นี่
+const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co;   // ← ใส่ URL จริงที่นี่
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
 let sb = null; // supabase client
 
@@ -1342,17 +1342,28 @@ async function submitReceive(){
   if(!usingDemo){
     try {
       if(editId){
+        // โหลด qty ปัจจุบันจาก DB ก่อนเพื่อความแม่นยำ
+        const {data: freshEq} = await sb.from('materials').select('id,code,current_stock').eq('warehouse_id',currentWarehouse);
+        const getQty = (code) => freshEq?.find(e=>e.code===code)?.current_stock || 0;
+        const getId  = (code) => freshEq?.find(e=>e.code===code)?.id;
+
+        // หักของเก่าออก
         const prev = receiveTransactions.find(t=>t.id===editId);
         if(prev) for(const it of (prev.items||[])){
-          const eq = equipments.find(e=>e.code===it.code);
-          if(eq) await sb.from('materials').update({current_stock: Math.max(0, eq.qty - it.qty)}).eq('id', eq.id);
+          const newQty = Math.max(0, getQty(it.code) - it.qty);
+          const id = getId(it.code);
+          if(id) await sb.from('materials').update({current_stock: newQty}).eq('id', id);
+          // อัปเดต freshEq ด้วยเพื่อ chain ถูกต้อง
+          const fe = freshEq?.find(e=>e.code===it.code); if(fe) fe.current_stock = newQty;
         }
         await sb.from('receiving_documents').update({doc_number:docNum,date,note}).eq('id',editId);
         await sb.from('receiving_items').delete().eq('doc_id', editId);
         for(const it of receiveTxItems){
           const eq = equipments.find(e=>e.code===it.code);
           await sb.from('receiving_items').insert({doc_id:editId, material_id:eq?.id, quantity:it.qty});
-          if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
+          const newQty = getQty(it.code) + it.qty;
+          if(eq?.id) await sb.from('materials').update({current_stock: newQty}).eq('id', eq.id);
+          const fe = freshEq?.find(e=>e.code===it.code); if(fe) fe.current_stock = newQty;
         }
       } else {
         const { data: doc, error: docErr } = await sb.from('receiving_documents').insert({doc_number:docNum,date,note,warehouse_id:currentWarehouse}).select().single();
@@ -1363,7 +1374,13 @@ async function submitReceive(){
           if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
         }
       }
-      // อัปเดต local state แทน loadAll() เพื่อความเร็ว
+      // อัปเดต local state อย่างถูกต้อง
+      if(editId){
+        // คืน qty ของเก่าก่อน
+        const prev = receiveTransactions.find(t=>t.id===editId);
+        if(prev)(prev.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
+      }
+      // บวก qty ใหม่
       receiveTxItems.forEach(it=>{
         const eq = equipments.find(e=>e.code===it.code);
         if(eq) eq.qty = (eq.qty||0) + it.qty;
