@@ -307,6 +307,7 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
       <button class="filter-chip" onclick="filterStock('low',this)">⚠️ ใกล้หมด</button>
       <button class="filter-chip" onclick="filterStock('empty',this)" style="color:#b91c1c;border-color:#fca5a5">🚫 หมด</button>
     </div>
+    <div id="stock-audit-bar" style="display:none"></div>
     <div id="stock-list"></div>
   </div>
 
@@ -598,8 +599,8 @@ body{font-family:'Kanit','Sarabun',sans-serif;background:#fafafa;color:var(--ig-
 
 <script>
 // ===== SUPABASE CONFIG (hardcoded - do not expose to client) =====
-const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';   // ← ใส่ URL จริงที่นี่
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M'; // ← ใส่ Key จริงที่นี่
+const SB_URL = 'https://zljfwhnimgjghsthcxjn.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsamZ3aG5pbWdqZ2hzdGhjeGpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzIwNDEsImV4cCI6MjA5MTM0ODA0MX0.9R5FvHtIf1HGyqo7S8Yn3Ln1tzRI8fQHxOkNFPyLt_M';
 let sb = null; // supabase client
 
 // ===== LOGIN SYSTEM =====
@@ -719,7 +720,7 @@ async function selectWarehouse(wh){
 // ===== STATE =====
 let equipments=[], issueTransactions=[], receiveTransactions=[];
 let issueTxItems=[], receiveTxItems=[];
-let pickerTarget=null, pickerSelected={};
+let pickerTarget=null, pickerSelected={}, pickerCodes=[], pickerIdxByCode={};
 let issueReportMonth=new Date(), receiveReportMonth=new Date();
 let issueChart=null, receiveChart=null;
 let editingIssueId=null, editingReceiveId=null;
@@ -773,7 +774,8 @@ function showSkeleton(){
   ).join('');
 }
 
-function today(){ return new Date().toISOString().split('T')[0]; }
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function today(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 // ===== THAI ERROR TRANSLATOR =====
 function thaiError(e){
@@ -832,7 +834,7 @@ function setCachedImg(id,url){ try{ localStorage.setItem(imgCacheKey(id),url||''
 
 // ===== LOAD ALL FROM SUPABASE =====
 async function loadAll(){
-  if(!sb) return;
+  if(!sb || !currentWarehouse) return;
   // โหลดทุกอย่างใน query เดียว แต่ใช้ cached image ก่อน
   const [eqRes, issRes, recRes] = await Promise.all([
     sb.from('materials').select('id,code,name,unit,min_qty,current_stock,image_url').eq('warehouse_id', currentWarehouse).order('code'),
@@ -865,6 +867,7 @@ function mapReceivingDoc(r){
 function renderAll(){
   renderEquip(); renderIssueList(); renderReceiveList();
   renderStockReport(); renderIssueReport(); renderReceiveReport(); renderEquipReport(); checkLowStock();
+  renderStockBanner();
 }
 
 // ===== EQUIPMENT =====
@@ -886,11 +889,11 @@ function renderEquip(){
   } else { grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(5,1fr)'; empty.style.display='none'; }
   grid.innerHTML = filtered.map(eq=>`
     <div class="product-tile" onclick="showEquipDetail('${eq.id}')">
-      ${eq.img ? `<img src="${eq.img}" alt="${eq.name}" onerror="this.style.display='none'">` :
-        `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${eq.name}</div></div>`}
+      ${eq.img ? `<img src="${esc(eq.img)}" alt="${esc(eq.name)}" onerror="this.style.display='none'">` :
+        `<div class="product-no-img"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><div style="font-size:9px;color:#aaa;margin-top:3px">${esc(eq.name)}</div></div>`}
       ${eq.qty===0 ? `<div class="tile-low" style="background:#b91c1c">หมด</div>` : eq.qty<=eq.minQty ? `<div class="tile-low" style="background:#facc15;color:#fff">ใกล้หมด</div>` : ''}
-      <div class="tile-name">${eq.name}</div>
-      <div class="tile-overlay"><div style="font-weight:700;font-size:15px">${eq.qty}</div><div style="font-size:11px">${eq.unit}</div><div style="font-size:10px;opacity:.8">${eq.code}</div></div>
+      <div class="tile-name">${esc(eq.name)}</div>
+      <div class="tile-overlay"><div style="font-weight:700;font-size:15px">${eq.qty}</div><div style="font-size:11px">${esc(eq.unit)}</div><div style="font-size:10px;opacity:.8">${esc(eq.code)}</div></div>
     </div>`).join('');
   renderStories();
 }
@@ -1063,6 +1066,69 @@ async function reloadEquip(){
   renderEquip(); renderStockReport(); checkLowStock();
 }
 
+// ===== STOCK =====
+// สต๊อก (materials.current_stock) ถูกคำนวณอัตโนมัติโดย trigger ฝั่ง Postgres
+// จากผลรวม receiving_items − issuing_items เสมอ (ดู stock_trigger_migration.sql)
+// หน้าเว็บแค่ insert/update/delete รายการรับเข้า-เบิก แล้ว DB จะปรับยอดให้เอง
+// ฟังก์ชันนี้เหลือไว้แค่ตรวจว่ารหัสอุปกรณ์มีอยู่จริงในคลังก่อนบันทึกเอกสาร
+async function verifyCodesExist(codes){
+  const uniq = [...new Set(codes)];
+  if(!uniq.length) return;
+  const { data: fresh, error } = await sb.from('materials')
+    .select('code').eq('warehouse_id', currentWarehouse).in('code', uniq);
+  if(error) throw error;
+  const found = (fresh||[]).map(m=>m.code);
+  const missing = uniq.filter(c=>!found.includes(c));
+  if(missing.length) throw new Error('ไม่พบอุปกรณ์รหัส '+missing.join(', ')+' ในคลังนี้');
+}
+
+// ===== ตรวจสอบ/ซ่อมสต๊อก =====
+// ยอดที่ถูกต้อง = ผลรวมรับเข้า − ผลรวมเบิก (materials ถูกสร้างด้วย current_stock = 0 เสมอ)
+function expectedStockByCode(){
+  const exp = {};
+  equipments.forEach(e=>{ exp[e.code] = 0; });
+  receiveTransactions.forEach(tx=>(tx.items||[]).forEach(it=>{ if(it.code in exp) exp[it.code] += (it.qty||0); }));
+  issueTransactions.forEach(tx=>(tx.items||[]).forEach(it=>{ if(it.code in exp) exp[it.code] -= (it.qty||0); }));
+  return exp;
+}
+function stockMismatches(){
+  const exp = expectedStockByCode();
+  return equipments
+    .filter(e => (e.qty||0) !== exp[e.code])
+    .map(e => ({ id:e.id, code:e.code, name:e.name, unit:e.unit, actual:e.qty||0, expected:exp[e.code] }));
+}
+function renderStockBanner(){
+  const bar = document.getElementById('stock-audit-bar');
+  if(!bar) return;
+  const bad = stockMismatches();
+  if(!bad.length || usingDemo){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  bar.innerHTML = `<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px">
+    <div style="font-weight:600;color:#9a3412;margin-bottom:4px">⚠️ ยอดคงเหลือไม่ตรงกับเอกสาร ${bad.length} รายการ</div>
+    <div style="color:#7c2d12;font-size:12px;margin-bottom:8px">${bad.slice(0,5).map(b=>`${esc(b.name)}: ระบบ ${b.actual} / ตามเอกสาร ${b.expected}`).join('<br>')}${bad.length>5?'<br>…':''}</div>
+    <button class="btn btn-sm btn-outline" onclick="repairStock()">🛠 ซ่อมยอดให้ตรงเอกสาร</button>
+  </div>`;
+}
+async function repairStock(){
+  const bad = stockMismatches();
+  if(!bad.length){ toast('ยอดตรงกับเอกสารทั้งหมดแล้ว ✓','success'); return; }
+  if(!confirm(`ปรับยอดคงเหลือ ${bad.length} รายการ ให้ตรงกับเอกสารรับเข้า/เบิกทั้งหมด?`)) return;
+  if(usingDemo){
+    bad.forEach(b=>{ const eq=equipments.find(e=>e.id===b.id); if(eq) eq.qty=Math.max(0,b.expected); });
+    renderAll(); toast('ซ่อมยอดเรียบร้อย ✓','success'); return;
+  }
+  try {
+    for(const b of bad){
+      // สต๊อกคำนวณอัตโนมัติจากเอกสารโดย trigger อยู่แล้ว ปุ่มนี้แค่สั่งให้คำนวณใหม่
+      // (เผื่อกรณีหายาก เช่น trigger เพิ่งถูกติดตั้งทีหลังข้อมูลเก่า)
+      const { error } = await sb.rpc('repair_material_stock', { p_material_id: b.id });
+      if(error) throw error;
+    }
+    await loadAll();
+    toast(`ปรับยอดแล้ว ${bad.length} รายการ ✓`,'success');
+  } catch(e){ toast(thaiError(e),'error'); }
+}
+
 // ===== ISSUE LIST =====
 function renderIssueList(){
   const wrap = document.getElementById('issue-list-wrap');
@@ -1070,12 +1136,12 @@ function renderIssueList(){
   if(!sorted.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">ยังไม่มีรายการเบิก</div></div>`; return; }
   wrap.innerHTML = `<div class="card"><div style="padding:0">${sorted.map(tx=>{
     const total = (tx.items||[]).reduce((s,i)=>s+(i.qty||0),0);
-    const summary = (tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    const summary = (tx.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
     return `<div class="tx-item">
       <div class="tx-avatar" style="background:linear-gradient(135deg,#ffeef0,#ffd6da)">📤</div>
       <div class="tx-info" onclick="viewDoc('issue','${tx.id}')">
-        <div class="tx-name">${tx.requester} <span style="color:var(--ig-muted);font-size:11px">${tx.dept||''}</span></div>
-        <div class="tx-sub">${tx.docNum} · ${fmtDate(tx.date)}</div>
+        <div class="tx-name">${esc(tx.requester)} <span style="color:var(--ig-muted);font-size:11px">${esc(tx.dept||'')}</span></div>
+        <div class="tx-sub">${esc(tx.docNum)} · ${fmtDate(tx.date)}</div>
         <div class="tx-sub">${summary}</div>
         <div class="tx-actions">
           <button class="btn btn-sm btn-outline" style="padding:3px 10px" onclick="event.stopPropagation();editIssue('${tx.id}')">✏️ แก้ไข</button>
@@ -1115,13 +1181,9 @@ async function deleteIssue(id){
   if(!confirm('ลบรายการเบิกนี้?\n(สต๊อกจะถูกคืน)')) return;
   const tx = issueTransactions.find(t=>t.id===id);
   if(!usingDemo && tx){
-    // คืนสต๊อกก่อน แล้วลบ doc (cascade ลบ items)
-    for(const it of (tx.items||[])){
-      const eq = equipments.find(e=>e.code===it.code);
-      if(eq) await sb.from('materials').update({current_stock: eq.qty + it.qty}).eq('id', eq.id);
-    }
+    // ลบเอกสาร -> trigger ฝั่ง DB คืนสต๊อกให้อัตโนมัติก่อน cascade ลบ items
     const { error } = await sb.from('issuing_documents').delete().eq('id', id);
-    if(error){ toast('ลบไม่สำเร็จ','error'); return; }
+    if(error){ toast(thaiError(error),'error'); return; }
     await loadAll();
   } else {
     if(tx)(tx.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty+=it.qty; });
@@ -1174,6 +1236,9 @@ async function submitIssue(){
   if(!requester){ toast('กรุณากรอกชื่อผู้เบิก','error'); return; }
   if(!dept){ toast('กรุณากรอกหน่วยงาน','error'); return; }
   if(!issueTxItems.length){ toast('กรุณาเลือกอุปกรณ์','error'); return; }
+  for(const it of issueTxItems){
+    if(!equipments.find(e=>e.code===it.code)){ toast(`ไม่พบอุปกรณ์ ${it.code} ในคลังนี้`,'error'); return; }
+  }
   for(const item of issueTxItems){
     const avail = getAvailStock(item.code, editId||null);
     if(item.qty>avail){ toast(`${item.name}: มีคงเหลือเพียง ${avail} ${item.unit}`,'error'); return; }
@@ -1183,47 +1248,32 @@ async function submitIssue(){
 
   if(!usingDemo){
     try {
+      await verifyCodesExist(issueTxItems.map(it=>it.code));
+
+      let docId = editId;
       if(editId){
-        // คืนสต๊อกเก่า
-        const prev = issueTransactions.find(t=>t.id===editId);
-        if(prev) for(const it of (prev.items||[])){
-          const eq = equipments.find(e=>e.code===it.code);
-          if(eq) await sb.from('materials').update({current_stock: eq.qty + it.qty}).eq('id', eq.id);
-        }
-        // อัปเดต doc
-        await sb.from('issuing_documents').update({doc_number:docNum,date,requester_name:requester,department:dept,note}).eq('id',editId);
-        await sb.from('issuing_items').delete().eq('doc_id', editId);
-        // ตัดสต๊อกใหม่และ insert items
-        for(const it of issueTxItems){
-          const eq = equipments.find(e=>e.code===it.code);
-          const matId = eq?.id;
-          await sb.from('issuing_items').insert({doc_id:editId, material_id:matId, quantity:it.qty});
-          if(eq) await sb.from('materials').update({current_stock: Math.max(0, (eq.qty||0) - it.qty)}).eq('id', eq.id);
-        }
+        const { error: uErr } = await sb.from('issuing_documents')
+          .update({doc_number:docNum,date,requester_name:requester,department:dept,note}).eq('id',editId);
+        if(uErr) throw uErr;
+        const { error: dErr } = await sb.from('issuing_items').delete().eq('doc_id', editId);
+        if(dErr) throw dErr;
       } else {
-        const { data: doc, error: docErr } = await sb.from('issuing_documents').insert({doc_number:docNum,date,requester_name:requester,department:dept,note,warehouse_id:currentWarehouse}).select().single();
+        const { data: doc, error: docErr } = await sb.from('issuing_documents')
+          .insert({doc_number:docNum,date,requester_name:requester,department:dept,note,warehouse_id:currentWarehouse})
+          .select().single();
         if(docErr) throw docErr;
-        for(const it of issueTxItems){
-          const eq = equipments.find(e=>e.code===it.code);
-          const matId = eq?.id;
-          await sb.from('issuing_items').insert({doc_id:doc.id, material_id:matId, quantity:it.qty});
-          if(eq) await sb.from('materials').update({current_stock: Math.max(0, (eq.qty||0) - it.qty)}).eq('id', eq.id);
-        }
+        docId = doc.id;
       }
-      // อัปเดต local state แทน loadAll() เพื่อความเร็ว
-      issueTxItems.forEach(it=>{
-        const eq = equipments.find(e=>e.code===it.code);
-        if(eq) eq.qty = Math.max(0,(eq.qty||0)-it.qty);
-      });
-      if(editId){
-        const idx = issueTransactions.findIndex(t=>t.id===editId);
-        if(idx>-1) issueTransactions[idx] = {...issueTransactions[idx], docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))};
-      } else {
-        issueTransactions.unshift({id:'pending',docNum,date,requester,dept,note,items:issueTxItems.map(i=>({...i}))});
+      const rows = issueTxItems.map(it=>({
+        doc_id: docId,
+        material_id: equipments.find(e=>e.code===it.code)?.id,
+        quantity: it.qty
+      })).filter(r=>r.material_id);
+      if(rows.length){
+        const { error: iErr } = await sb.from('issuing_items').insert(rows);
+        if(iErr) throw iErr;
       }
-      renderAll();
-      // sync จาก server เบื้องหลัง
-      loadAll().catch(()=>{});
+      await loadAll();
       toast('บันทึกการเบิกสำเร็จ ✓','success');
     } catch(e){ toast(thaiError(e),'error'); }
   } else {
@@ -1249,12 +1299,12 @@ function renderReceiveList(){
   if(!sorted.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📥</div><div class="empty-text">ยังไม่มีรายการรับเข้า</div></div>`; return; }
   wrap.innerHTML = `<div class="card"><div style="padding:0">${sorted.map(tx=>{
     const total = (tx.items||[]).reduce((s,i)=>s+(i.qty||0),0);
-    const summary = (tx.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    const summary = (tx.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
     return `<div class="tx-item">
       <div class="tx-avatar" style="background:linear-gradient(135deg,#eafaf0,#c3f0d0)">📥</div>
       <div class="tx-info" onclick="viewDoc('receive','${tx.id}')">
-        <div class="tx-name">${tx.docNum}</div>
-        <div class="tx-sub">${fmtDate(tx.date)}${tx.note?' · '+tx.note:''}</div>
+        <div class="tx-name">${esc(tx.docNum)}</div>
+        <div class="tx-sub">${fmtDate(tx.date)}${tx.note?' · '+esc(tx.note):''}</div>
         <div class="tx-sub">${summary}</div>
         <div class="tx-actions">
           <button class="btn btn-sm btn-outline" style="padding:3px 10px" onclick="event.stopPropagation();editReceive('${tx.id}')">✏️ แก้ไข</button>
@@ -1292,12 +1342,9 @@ async function deleteReceive(id){
   if(!confirm('ลบรายการรับเข้านี้?\n(สต๊อกจะถูกปรับลด)')) return;
   const tx = receiveTransactions.find(t=>t.id===id);
   if(!usingDemo && tx){
-    for(const it of (tx.items||[])){
-      const eq = equipments.find(e=>e.code===it.code);
-      if(eq) await sb.from('materials').update({current_stock: Math.max(0, eq.qty - it.qty)}).eq('id', eq.id);
-    }
+    // ลบเอกสาร -> trigger ฝั่ง DB ตัดสต๊อกที่เคยรับเข้าออกให้อัตโนมัติก่อน cascade ลบ items
     const { error } = await sb.from('receiving_documents').delete().eq('id', id);
-    if(error){ toast('ลบไม่สำเร็จ','error'); return; }
+    if(error){ toast(thaiError(error),'error'); return; }
     await loadAll();
   } else {
     if(tx)(tx.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
@@ -1336,64 +1383,39 @@ async function submitReceive(){
   const editId = document.getElementById('receive-edit-id').value;
   if(!date){ toast('กรุณาเลือกวันที่','error'); return; }
   if(!receiveTxItems.length){ toast('กรุณาเลือกอุปกรณ์','error'); return; }
+  for(const it of receiveTxItems){
+    if(!equipments.find(e=>e.code===it.code)){ toast(`ไม่พบอุปกรณ์ ${it.code} ในคลังนี้`,'error'); return; }
+  }
   const btn = document.getElementById('submit-receive-btn');
   btn.innerHTML = '<span class="spinner"></span> กำลังบันทึก...'; btn.disabled = true;
 
   if(!usingDemo){
     try {
-      if(editId){
-        // โหลด qty ปัจจุบันจาก DB ก่อนเพื่อความแม่นยำ
-        const {data: freshEq} = await sb.from('materials').select('id,code,current_stock').eq('warehouse_id',currentWarehouse);
-        const getQty = (code) => freshEq?.find(e=>e.code===code)?.current_stock || 0;
-        const getId  = (code) => freshEq?.find(e=>e.code===code)?.id;
+      await verifyCodesExist(receiveTxItems.map(it=>it.code));
 
-        // หักของเก่าออก
-        const prev = receiveTransactions.find(t=>t.id===editId);
-        if(prev) for(const it of (prev.items||[])){
-          const newQty = Math.max(0, getQty(it.code) - it.qty);
-          const id = getId(it.code);
-          if(id) await sb.from('materials').update({current_stock: newQty}).eq('id', id);
-          // อัปเดต freshEq ด้วยเพื่อ chain ถูกต้อง
-          const fe = freshEq?.find(e=>e.code===it.code); if(fe) fe.current_stock = newQty;
-        }
-        await sb.from('receiving_documents').update({doc_number:docNum,date,note}).eq('id',editId);
-        await sb.from('receiving_items').delete().eq('doc_id', editId);
-        for(const it of receiveTxItems){
-          const eq = equipments.find(e=>e.code===it.code);
-          await sb.from('receiving_items').insert({doc_id:editId, material_id:eq?.id, quantity:it.qty});
-          const newQty = getQty(it.code) + it.qty;
-          if(eq?.id) await sb.from('materials').update({current_stock: newQty}).eq('id', eq.id);
-          const fe = freshEq?.find(e=>e.code===it.code); if(fe) fe.current_stock = newQty;
-        }
+      let docId = editId;
+      if(editId){
+        const { error: uErr } = await sb.from('receiving_documents')
+          .update({doc_number:docNum,date,note}).eq('id',editId);
+        if(uErr) throw uErr;
+        const { error: dErr } = await sb.from('receiving_items').delete().eq('doc_id', editId);
+        if(dErr) throw dErr;
       } else {
-        const { data: doc, error: docErr } = await sb.from('receiving_documents').insert({doc_number:docNum,date,note,warehouse_id:currentWarehouse}).select().single();
+        const { data: doc, error: docErr } = await sb.from('receiving_documents')
+          .insert({doc_number:docNum,date,note,warehouse_id:currentWarehouse}).select().single();
         if(docErr) throw docErr;
-        for(const it of receiveTxItems){
-          const eq = equipments.find(e=>e.code===it.code);
-          await sb.from('receiving_items').insert({doc_id:doc.id, material_id:eq?.id, quantity:it.qty});
-          if(eq) await sb.from('materials').update({current_stock: (eq.qty||0) + it.qty}).eq('id', eq.id);
-        }
+        docId = doc.id;
       }
-      // อัปเดต local state อย่างถูกต้อง
-      if(editId){
-        // คืน qty ของเก่าก่อน
-        const prev = receiveTransactions.find(t=>t.id===editId);
-        if(prev)(prev.items||[]).forEach(it=>{ const eq=equipments.find(e=>e.code===it.code); if(eq) eq.qty=Math.max(0,eq.qty-it.qty); });
+      const rows = receiveTxItems.map(it=>({
+        doc_id: docId,
+        material_id: equipments.find(e=>e.code===it.code)?.id,
+        quantity: it.qty
+      })).filter(r=>r.material_id);
+      if(rows.length){
+        const { error: iErr } = await sb.from('receiving_items').insert(rows);
+        if(iErr) throw iErr;
       }
-      // บวก qty ใหม่
-      receiveTxItems.forEach(it=>{
-        const eq = equipments.find(e=>e.code===it.code);
-        if(eq) eq.qty = (eq.qty||0) + it.qty;
-      });
-      if(editId){
-        const idx = receiveTransactions.findIndex(t=>t.id===editId);
-        if(idx>-1) receiveTransactions[idx] = {...receiveTransactions[idx], docNum,date,note,items:receiveTxItems.map(i=>({...i}))};
-      } else {
-        receiveTransactions.unshift({id:'pending',docNum,date,note,items:receiveTxItems.map(i=>({...i}))});
-      }
-      renderAll();
-      // sync จาก server เบื้องหลัง
-      loadAll().catch(()=>{});
+      await loadAll();
       toast('บันทึกการรับเข้าสำเร็จ ✓','success');
     } catch(e){ toast(thaiError(e),'error'); }
   } else {
@@ -1425,37 +1447,40 @@ function renderPicker(f){
   const list = document.getElementById('picker-list');
   const filtered = equipments.filter(e=>e.name.toLowerCase().includes(f.toLowerCase())||e.code.toLowerCase().includes(f.toLowerCase()));
   if(!filtered.length){ list.innerHTML='<div class="empty-state" style="padding:20px"><div class="empty-sub">ไม่พบอุปกรณ์</div></div>'; return; }
-  list.innerHTML = filtered.map(eq=>{
+  pickerCodes = filtered.map(e=>e.code);
+  pickerIdxByCode = {}; pickerCodes.forEach((c,i)=>{ pickerIdxByCode[c]=i; });
+  list.innerHTML = filtered.map((eq,i)=>{
     const sel = pickerSelected[eq.code]||0;
-    const codeEsc = eq.code.replace(/'/g,"\\'");
-    return `<div class="product-card ${sel>0?'selected':''}" id="pcard-${eq.code}" onclick="togglePickerCard('${codeEsc}')">
-      <div class="product-card-img">${eq.img?`<img src="${eq.img}" alt="">`:'<span style="font-size:22px">📦</span>'}</div>
+    return `<div class="product-card ${sel>0?'selected':''}" id="pcard-${i}" onclick="togglePickerCard(${i})">
+      <div class="product-card-img">${eq.img?`<img src="${esc(eq.img)}" alt="">`:'<span style="font-size:22px">📦</span>'}</div>
       <div class="product-card-info">
-        <div class="product-card-name">${eq.name}</div>
-        <div class="product-card-code">${eq.code} · คงเหลือ: ${eq.qty} ${eq.unit}</div>
+        <div class="product-card-name">${esc(eq.name)}</div>
+        <div class="product-card-code">${esc(eq.code)} · คงเหลือ: ${eq.qty} ${esc(eq.unit)}</div>
       </div>
       <div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px">
-        <button class="qty-btn" onclick="adjPicker('${codeEsc}',-1)">−</button>
-        <input type="number" min="0" id="pinput-${eq.code}" value="${sel}"
+        <button class="qty-btn" onclick="adjPicker(${i},-1)">−</button>
+        <input type="number" min="0" id="pinput-${i}" value="${sel}"
           style="width:48px;text-align:center;border:1.5px solid var(--ig-border);border-radius:6px;padding:3px 4px;font-size:14px;font-weight:500;font-family:inherit"
-          onclick="event.stopPropagation()" oninput="setPicker('${codeEsc}',this.value)" onblur="cleanPicker('${codeEsc}',this)">
-        <button class="qty-btn" onclick="adjPicker('${codeEsc}',1)">+</button>
+          onclick="event.stopPropagation()" oninput="setPicker(${i},this.value)" onblur="cleanPicker(${i},this)">
+        <button class="qty-btn" onclick="adjPicker(${i},1)">+</button>
       </div>
     </div>`;
   }).join('');
 }
 
 function _updatePickerCard(code){
+  const i = pickerIdxByCode[code];
+  if(i===undefined) return;
   const sel = pickerSelected[code]||0;
-  const card = document.getElementById('pcard-'+code);
-  const inp = document.getElementById('pinput-'+code);
+  const card = document.getElementById('pcard-'+i);
+  const inp = document.getElementById('pinput-'+i);
   if(card) card.className = 'product-card'+(sel>0?' selected':'');
   if(inp && inp!==document.activeElement) inp.value = sel;
 }
-function togglePickerCard(c){ if(pickerSelected[c]) delete pickerSelected[c]; else pickerSelected[c]=1; _updatePickerCard(c); }
-function adjPicker(c,d){ const v=Math.max(0,(pickerSelected[c]||0)+d); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; _updatePickerCard(c); }
-function setPicker(c,val){ const v=parseInt(val)||0; if(v<=0) delete pickerSelected[c]; else pickerSelected[c]=v; const card=document.getElementById('pcard-'+c); if(card) card.className='product-card'+(v>0?' selected':''); }
-function cleanPicker(c,inp){ const v=Math.max(0,parseInt(inp.value)||0); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; inp.value=v; _updatePickerCard(c); }
+function togglePickerCard(i){ const c=pickerCodes[i]; if(c===undefined) return; if(pickerSelected[c]) delete pickerSelected[c]; else pickerSelected[c]=1; _updatePickerCard(c); }
+function adjPicker(i,d){ const c=pickerCodes[i]; if(c===undefined) return; const v=Math.max(0,(pickerSelected[c]||0)+d); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; _updatePickerCard(c); }
+function setPicker(i,val){ const c=pickerCodes[i]; if(c===undefined) return; const v=parseInt(val)||0; if(v<=0) delete pickerSelected[c]; else pickerSelected[c]=v; const card=document.getElementById('pcard-'+i); if(card) card.className='product-card'+(v>0?' selected':''); }
+function cleanPicker(i,inp){ const c=pickerCodes[i]; if(c===undefined) return; const v=Math.max(0,parseInt(inp.value)||0); if(v===0) delete pickerSelected[c]; else pickerSelected[c]=v; inp.value=v; _updatePickerCard(c); }
 function filterPicker(v){ renderPicker(v); }
 function confirmPicker(){
   const items = Object.entries(pickerSelected).filter(([,q])=>q>0).map(([c,q])=>{ const eq=equipments.find(e=>e.code===c); return eq?{code:eq.code,name:eq.name,qty:q,unit:eq.unit,img:eq.img||''}:null; }).filter(Boolean);
@@ -1490,26 +1515,59 @@ function viewDoc(type, id){
 
 // ===== QR =====
 function openQR(target){ qrTarget=target; openModal('modal-qr'); startQR(); }
+let qrLoop=null, qrDetector=null;
 async function startQR(){
-  try { qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); document.getElementById('qr-video').srcObject=qrStream; }
-  catch(e){ toast('ไม่สามารถเปิดกล้องได้','error'); }
+  try {
+    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v = document.getElementById('qr-video');
+    v.srcObject=qrStream;
+    await v.play().catch(()=>{});
+  } catch(e){ toast('ไม่สามารถเปิดกล้องได้','error'); return; }
+  // ถอดรหัส QR จริง (รองรับเบราว์เซอร์ที่มี BarcodeDetector เช่น Chrome/Android)
+  if(!('BarcodeDetector' in window)){
+    toast('เบราว์เซอร์นี้สแกนอัตโนมัติไม่ได้ กรุณาพิมพ์รหัส','error');
+    return;
+  }
+  try { qrDetector = qrDetector || new window.BarcodeDetector({formats:['qr_code','code_128','ean_13']}); }
+  catch(e){ return; }
+  const video = document.getElementById('qr-video');
+  clearInterval(qrLoop);
+  qrLoop = setInterval(async ()=>{
+    if(!qrStream || video.readyState < 2) return;
+    try {
+      const codes = await qrDetector.detect(video);
+      if(codes && codes.length) handleQRValue(String(codes[0].rawValue||'').trim());
+    } catch(e){}
+  }, 400);
 }
-function closeQR(){ if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; } closeModal('modal-qr'); }
-function manualQRInput(){
-  const val = document.getElementById('qr-manual-input').value.trim(); if(!val) return;
+function handleQRValue(val){
+  if(!val) return;
   const eq = equipments.find(e=>e.code===val);
-  if(eq){
-    const t = qrTarget||'issue', items = t==='issue' ? issueTxItems : receiveTxItems;
-    if(!items.find(i=>i.code===eq.code)) items.push({code:eq.code,name:eq.name,qty:1,unit:eq.unit,img:eq.img||''});
-    if(t==='issue') renderIssueTxItems(); else renderReceiveTxItems();
-    toast(`เพิ่ม ${eq.name} แล้ว`,'success');
-  } else { toast('ไม่พบรหัสอุปกรณ์','error'); }
-  document.getElementById('qr-manual-input').value = ''; closeQR();
+  if(!eq){ toast('ไม่พบรหัสอุปกรณ์: '+val,'error'); return; }
+  const t = qrTarget||'issue', items = t==='issue' ? issueTxItems : receiveTxItems;
+  const exist = items.find(i=>i.code===eq.code);
+  if(exist) exist.qty += 1;
+  else items.push({code:eq.code,name:eq.name,qty:1,unit:eq.unit,img:eq.img||''});
+  if(t==='issue') renderIssueTxItems(); else renderReceiveTxItems();
+  toast(`เพิ่ม ${eq.name} แล้ว`,'success');
+  closeQR();
+}
+function closeQR(){ clearInterval(qrLoop); qrLoop=null; if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; } closeModal('modal-qr'); }
+function manualQRInput(){
+  const inp = document.getElementById('qr-manual-input');
+  const val = inp.value.trim(); if(!val) return;
+  inp.value = '';
+  handleQRValue(val);
 }
 
 // ===== STOCK REPORT =====
-function renderStockReport(){ filterStock('all', document.querySelector('#page-stock .filter-chip')); }
+let stockFilter='all';
+function renderStockReport(){
+  const btn = document.querySelector(`#page-stock .filter-chip[onclick*="'${stockFilter}'"]`) || document.querySelector('#page-stock .filter-chip');
+  filterStock(stockFilter, btn);
+}
 function filterStock(type, btn){
+  stockFilter = type;
   document.querySelectorAll('#page-stock .filter-chip').forEach(c=>c.classList.remove('active'));
   if(btn) btn.classList.add('active');
   let items = [...equipments];
@@ -1832,7 +1890,7 @@ function genNum(prefix){
   const dd = String(now.getDate()).padStart(2,'0');
   const src = prefix==='IS' ? issueTransactions : receiveTransactions;
   const key = `${prefix}-${yy}${mm}${dd}`;
-  const cnt = src.filter(r=>r.docNum.startsWith(key)).length;
+  const cnt = src.filter(r=>String(r.docNum||'').startsWith(key)).length;
   return `${key}-${String(cnt+1).padStart(3,'0')}`;
 }
 function fmtDate(s){
